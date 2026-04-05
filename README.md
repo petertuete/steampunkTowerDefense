@@ -46,9 +46,16 @@ node lernen/backend-mini/server.js
 
 ```env
 PORT=3001
+NODE_ENV=development
+ALLOWED_ORIGINS=http://localhost:5173,http://localhost:8000,http://localhost:8080
 SUPABASE_URL=https://<your-project>.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=<service-role-key>
 ```
+
+Fuer Deployment:
+
+- `NODE_ENV=production`
+- `ALLOWED_ORIGINS` auf eure Frontend-Domain setzen (z. B. `https://your-game.vercel.app`)
 
 ### Frontend (`frontend/.env`)
 

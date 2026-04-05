@@ -23,6 +23,8 @@ const { createClient } = require("@supabase/supabase-js");
 
 const app = express();
 const port = Number(process.env.PORT || 3001);
+const NODE_ENV = process.env.NODE_ENV || "development";
+const isProduction = NODE_ENV === "production";
 
 const SUPABASE_URL = process.env.SUPABASE_URL || "";
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
@@ -59,9 +61,38 @@ const supabase = hasSupabaseConfig
   ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
   : null;
 
+function parseAllowedOrigins() {
+  const raw = process.env.ALLOWED_ORIGINS || "";
+  const configured = raw
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+  if (configured.length > 0) {
+    return configured;
+  }
+
+  // Sichere Defaults fuer lokale Entwicklung
+  return ["http://localhost:5173", "http://localhost:8000", "http://localhost:8080"];
+}
+
+const allowedOrigins = parseAllowedOrigins();
+
+app.disable("x-powered-by");
 app.use(cors({
-origin: ["http://localhost:5173", "http://localhost:8000", "http://localhost:8080"]
-})); // fuer Lernsetup erstmal offen
+  origin: (origin, callback) => {
+    // Requests ohne Origin erlauben (z.B. Healthchecks/Server-zu-Server)
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error("CORS blocked: origin not allowed"));
+  }
+}));
 app.use(express.json({ limit: "1mb" }));
 
 function sanitizePlayerName(name) {
@@ -122,13 +153,21 @@ function flattenTowerPlacements(runId, towerUsageByLevel) {
 }
 
 app.get("/api/v1/health", (req, res) => {
-  res.status(200).json({
+  const payload = {
     status: "ok",
     service: "highscore-api",
-    supabaseConfigured: hasSupabaseConfig,
-    supabaseKeyKind,
-    supabaseJwtRole
-  });
+    environment: NODE_ENV,
+    supabaseConfigured: hasSupabaseConfig
+  };
+
+  // Diagnosedetails nur ausserhalb Produktion zeigen
+  if (!isProduction) {
+    payload.supabaseKeyKind = supabaseKeyKind;
+    payload.supabaseJwtRole = supabaseJwtRole;
+    payload.allowedOrigins = allowedOrigins;
+  }
+
+  res.status(200).json(payload);
 });
 
 app.post("/api/v1/runs", async (req, res) => {
