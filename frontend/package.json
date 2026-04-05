@@ -1,0 +1,21 @@
+{
+  "name": "steampunk-tower-defense",
+  "version": "1.0.0",
+  "description": "Steampunk Pixel-Art Tower Defense Game",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "vite": "^5.0.0"
+  },
+  "dependencies": {
+    "phaser": "^3.55.2"
+  }
+}

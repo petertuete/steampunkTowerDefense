@@ -1,0 +1,19 @@
+<!doctype html>
+<html>
+  <body>
+    <button id="ping">Backend pingen</button>
+    <pre id="out">Warte auf Antwort...</pre>
+
+    <script>
+      document.getElementById("ping").addEventListener("click", async () => {
+        try {
+          const res = await fetch("http://localhost:3001/api/v1/health");
+          const data = await res.json();
+          document.getElementById("out").textContent = JSON.stringify(data, null, 2);
+        } catch (e) {
+          document.getElementById("out").textContent = "Fehler: " + e.message;
+        }
+      });
+    </script>
+  </body>
+</html>
