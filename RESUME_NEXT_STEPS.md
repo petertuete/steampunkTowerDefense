@@ -22,10 +22,16 @@ Sprich mich im lockeren Du-Stil an, und ich nenne dich Copilot.
    - S für 2x Speed
    - Flammenwerfer: rote Linie beim Schuss sichtbar, Nachbrennen bei Radius-Verlassen
    - Tesla: blauer Blitz-Flash beim Schuss
-   - Level 1 durchspielen → Level 2 startet automatisch
-   - Endscreen zeigt Gesamt-Score aus Level 1+2+3
+  - Endscreen: Name eingeben (3-10 Zeichen), Score speichern
+  - Top-10 Leaderboard wird geladen
 
-## Aktueller Funktionsstand (4. April 2026)
+## Deployment-Status
+- Frontend ist auf Vercel live
+- Backend ist auf Render live
+- Supabase Speicherung funktioniert (game_runs + tower_usage_entries)
+- Git-Tag fuer Live-Stand vorhanden: v1.0.0-live
+
+## Aktueller Funktionsstand (5. April 2026)
 - 3-Level-Kampagne: Beginner / Advanced / Ultimate
 - Auto-Progression nach Level-Abschluss
 - Kumulatives Gold-Scoring (Gold aus vorherigen Levels = Sonderkonto)
@@ -43,22 +49,28 @@ Sprich mich im lockeren Du-Stil an, und ich nenne dich Copilot.
 - Level-Skalierung: x1.0 / x1.6 / x2.2 HP
 - Armored: 50% DoT-Resistenz
 - Nachbrennen-Cooldown: 1x alle 2.5s pro Gegner
+- Wave-Stringformat aktiv: n/s/a/. (inkl. Extra-Pausen via '.')
+- Level-2 Pfad als Zickzack umgesetzt
+- Level-2 Gegner droppen doppeltes Gold
+- Nameingabe und Score-Submit ans Backend abgeschlossen
+- Endscreen Top-10 Leaderboard abgeschlossen
+- Backend-Hardening aktiv (ALLOWED_ORIGINS, production-safe health)
 
 ## Nächste offene Themen
 
 ### Prio 1 - Balancing weiter tunen
 - Level 1 Beginner: Flammenwerfer-Only sollte spätestens Welle 5-6 Probleme machen
-- Level 2 + 3: noch nicht gründlich getestet
+- Level 2 + 3: mit echten externen Testern evaluieren
 - Telemetrie-Daten nutzen: Kills/Leaks/Gold-Ausgaben im Konsolenlog
 - Wellen-Skalierungsfaktor (aktuell 14%) ggf. weiter anpassen
 
-### Prio 2 - Backend Score-Integration
-- Endscreen "Score absenden" Button verdrahten
-- POST /api/v1/scores (totalScoreGold, playerName, levelReached)
-- Spielername-Input vorm ersten Level oder beim Endscreen
+### Prio 2 - Stabilisierung Security/Operations
+- Service-role key rotation in Supabase (vorsorglich)
+- Optional: Rate-Limiter fuer POST /api/v1/runs
+- Optional: Monitoring/Alerting fuer Render Logs
 
 ### Prio 3 - Optional Polish
-- Highscore-Liste nach Kampagnenende anzeigen
+- Leaderboard-UI visuell verfeinern
 - Level-Beschreibungen im Selector ([Beginner - Einsteiger])
 - Grafik/Asset-Phase planen (Sprites, Tiles, Steampunk-Look)
 

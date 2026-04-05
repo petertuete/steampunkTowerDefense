@@ -1,14 +1,14 @@
 # Handover Status - BrowserGame
 
-Datum: 4. April 2026
+Datum: 5. April 2026
 
 ## Projektziel
 Steampunk Pixel-Art Tower Defense als spec-driven Vibe-Coding-Projekt, zuerst lokal kostenlos, spaeter onlinefaehig.
 
 ## Aktueller Realstand
-3-Level-Kampagne vollständig spielbar. Gameplay-Mechaniken verfeinert, Balancing aktiv verbessert.
+3-Level-Kampagne spielbar, Highscore-Pipeline produktiv online, Deployment live (Frontend + Backend), Security-Hardening umgesetzt.
 
-Implementiert (Stand 4. April 2026):
+Implementiert (Stand 5. April 2026):
 - Grid + Pfad-Visualisierung (Startfeld grün, Zielfeld rot, Pfad grau)
 - Enemy-Movement entlang Wegpunkten (deltaTime-basiert)
 - Tower-Placement (Linksklick), Tower-Verkauf (Shift+Linksklick, 75% Rückgeld)
@@ -21,7 +21,7 @@ Implementiert (Stand 4. April 2026):
 - Generator-Buff: +15% Damage, nicht stapelbar (maximal 1 Generator pro Turm)
 - Mörser ENTFERNT (kein Gameplay-Nutzen)
 - Damage + Kill + Gold-Reward
-- Wave-System mit 10s Pause zwischen Wellen + 15s initiale Build-Pause
+- Wave-System als String-Notation (n/s/a/.) fuer feingranulare Spawn-Choreografie
 - "Jetzt starten" Button + Space-Shortcut für Wave-Skip
 - Leben-System + Leak-Schaden
 - Game Over Screen + Win Screen inkl. Neustart
@@ -40,6 +40,20 @@ Implementiert (Stand 4. April 2026):
 - Sell-Modus-Anzeige im HUD (grün = Bauen / rot = Verkaufen mit Shift)
 - Speed-Toggle per Taste S (1x / 2x)
 - Tower.destroy() idempotent und null-safe
+- Endscreen-Nameingabe + Score-Submit an Backend
+- Top-10 Leaderboard im Endscreen (Win + Game Over)
+- Tower-Nutzungsanalyse pro Level inkl. Grid/Screen-Koordinaten
+- Level-2 Geometrie auf Zickzack-Pfad umgestellt
+- Level-2 Economy-Tuning: doppelter Gold-Reward pro Kill
+- Player-Name auf 3-10 Zeichen begrenzt (Frontend + Backend)
+- Backend Security-Hardening:
+   - CORS ueber ALLOWED_ORIGINS steuerbar
+   - NODE_ENV-aware Health-Endpoint (keine sensitiven Details in production)
+   - x-powered-by Header deaktiviert
+- Dependencies geprueft, ReDoS-Luecke (path-to-regexp) behoben
+- GitHub-Repo erstellt und initialisiert
+- Release-Tag gesetzt und gepusht: v1.0.0-live
+- Spiel online deployed (Vercel + Render)
 
 ## Kritische Architektur-Info
 Phaser scene.restart() führt create() neu aus, aber nicht den Constructor.
@@ -48,14 +62,16 @@ init(data) Hook fängt restart()-Payload (campaignContinue, selectedLevelKey, ca
 Gold-Trennung: this.gold = spendbar, this.accumulatedScoreGold = Sonderkonto.
 
 ## Relevante Dateien (Core)
-- frontend/src/scenes/GameScene.js (Kampagne, Gold-Trennung, Speed-Toggle, Sell-Logik)
+- frontend/src/scenes/GameScene.js (Kampagne, Gold-Trennung, Speed-Toggle, Sell-Logik, Submit/Leaderboard)
 - frontend/src/entities/Enemy.js (HP-Skalierung Level+Welle, DoT-Resistenz Armored)
 - frontend/src/entities/Tower.js (Flammenwerfer-Beam, Tesla-Blitz, Generator-Cap, destroy())
 - frontend/src/entities/Projectile.js (AoE, DoT, Chain für Projektil-Tower)
-- frontend/src/config/waves.js (3 Levels mit displayName, Wellenkomposition)
+- frontend/src/config/waves.js (3 Levels im n/s/a/. Wave-Stringformat)
 - frontend/src/config/enemies.js
 - frontend/src/config/towers.js (5 Tower-Typen, kein Mörser)
-- frontend/src/config/paths.js (3 Level-Pfade: S-Form, L-Form, Gerader)
+- frontend/src/config/paths.js (3 Level-Pfade: S-Form, Level-2-Zickzack, Gerader)
+- lernen/backend-mini/server.js (Supabase API, Input-Validation, CORS-Hardening)
+- lernen/backend-mini/supabase.schema.sql (game_runs + tower_usage_entries + RLS)
 
 ## Lokales Starten (sicherer Ablauf)
 1. Frontend:
@@ -82,13 +98,15 @@ Wichtig:
 
 ## Verifizierter Zustand am Ende dieses Tages
 - 3-Level-Kampagne komplett spielbar inkl. Auto-Progression
-- Kumulatives Scoring korrekt (Gold aus Level 1+2 im Endscore)
-- Flammenwerfer: Beam-Schaden, kein Projektil, Nachbrennen korrekt
-- Tesla: Instant-Blitz, kein Ghost-Blitz auf tote Gegner
-- Balancing: Flammenwerfer generft, Generator-Buff gedeckelt, Armored DoT-resistent
-- Tower-Verkauf sauber (Reichweitenring + Ziellinie verschwinden korrekt)
-- Speed-Toggle S funktioniert (Bewegung, Pause, Spawn)
-- Build kompiliert fehlerfrei
+- Kumulatives Scoring korrekt (Gold aus Level 1+2+3 im Endscore)
+- Highscore-Submit live inkl. Nameingabe und Top-10 Anzeige
+- Tower-Usage-Analytics in DB gespeichert
+- Level-2 Pfad + Economy erfolgreich nachgetuned
+- Wave-System auf n/s/a/. umgestellt und laeuft
+- Backend audit: 0 vulnerabilities (prod dependencies)
+- Security-Hardening deployed und produktiv
+- GitHub + Tag v1.0.0-live vorhanden
+- Vercel + Render Deployment erfolgreich
 
 ## Release-1 Scope Summary (aktuell verbindlich)
 In Scope (v1):
@@ -107,10 +125,10 @@ Merksatz fuer Folge-Sessions:
 - Release 1 = spielbarer Core ohne Upgrade-System.
 
 ## Offene naechste Schritte (priorisiert)
-1. Level-Design weiter ausbauen (zusaetzliche Pfade/Karten, Level 2/3 aktivieren)
-2. Balancing mit den neuen Run-Metriken iterativ verfeinern
-3. Score-Submit im Frontend an Backend API anbinden
-4. Optional: Highscore-Liste im Frontend sichtbar machen
+1. Balancing-Feintuning Level 2/3 auf Basis echter Tester-Runs
+2. Optional: Rate-Limiting fuer POST /api/v1/runs ergaenzen
+3. Optional: Tester-Feedback-Loop aufsetzen (Formular + Auswertung)
+4. Supabase service-role key vorsorglich rotieren
 5. Post-Release Backlog unveraendert: Turm-Upgrades + Upgrade-UI
 
 ## Kommunikationsstil (User-Praeferenz)

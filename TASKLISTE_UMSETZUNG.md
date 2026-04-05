@@ -1,7 +1,7 @@
 # Einzeltaskliste fuer die konkrete Umsetzung
 
-Version: 0.2  
-Datum: 4. April 2026
+Version: 0.3  
+Datum: 5. April 2026
 
 Legende: ✅ erledigt | ❌ entfernt/entfallen | ⏳ offen
 
@@ -42,10 +42,10 @@ Legende: ✅ erledigt | ❌ entfernt/entfallen | ⏳ offen
 25. ✅ P1: Inter-Wave-Timer + initiale Build-Pause
 26. ✅ P1: HUD fuer Level, Gegner, Wellen-Timer, Gold
 27. ✅ P1: Win/Lose-Zustand implementieren
-28. ⏳ P1: POST /api/v1/scores implementieren
-29. ⏳ P1: GET /api/v1/scores (Top-100) implementieren
-30. ⏳ P1: Namenseingabe nach Run-Ende
-31. ⏳ P1: Score-Submit aus Frontend ans Backend
+28. ✅ P1: POST /api/v1/runs implementiert (Run + Analytics)
+29. ✅ P1: GET /api/v1/scores (Top-Limit, sortiert) implementiert
+30. ✅ P1: Namenseingabe nach Run-Ende (3-10 Zeichen)
+31. ✅ P1: Score-Submit aus Frontend ans Backend
 
 ## Milestone 2: Core Gameplay Complete
 
@@ -73,9 +73,9 @@ Legende: ✅ erledigt | ❌ entfernt/entfallen | ⏳ offen
 
 ## Milestone 3: UI/UX und Highscore Final
 
-50. ⏳ P0: Highscore-Ansicht Top-100 im Frontend
-51. ⏳ P0: Sortierung und Ranking visualisieren
-52. ⏳ P1: Validierungsfehler fuer playerName
+50. ✅ P0: Highscore-Ansicht (Top-10) im Frontend
+51. ✅ P0: Sortierung und Ranking visualisiert
+52. ✅ P1: Validierungsfehler fuer playerName
 53. ✅ P1: Feedback bei ungueltiger Turmplatzierung
 54. ✅ P1: Feedback bei zu wenig Gold
 55. ⏳ P1: Platzhalter-UI-Icons integrieren
@@ -84,15 +84,15 @@ Legende: ✅ erledigt | ❌ entfernt/entfallen | ⏳ offen
 
 ## Milestone 4: Stabilisierung und Release Candidate
 
-58. ⏳ P0: API Input-Validierung absichern
+58. ✅ P0: API Input-Validierung serverseitig umgesetzt
 59. ⏳ P0: Rate-Limiting auf Score-POST
-60. ⏳ P0: Prepared Statements fuer DB-Queries
-61. ⏳ P1: Smoke-Testliste ausfuehren
-62. ⏳ P1: Edge Cases testen
-63. ⏳ P1: Fehler-Logging im Backend
+60. ✅ P0: SQL-Injection-Risiko minimiert (Supabase Client Inserts)
+61. ✅ P1: Smoke-Testliste ausgefuehrt (lokal + deployed)
+62. ✅ P1: Edge Cases Basisvalidierung getestet
+63. ✅ P1: Fehler-Logging im Backend
 64. ⏳ P1: Performance-Pass fuer hohe Gegnerdichte
-65. ⏳ P2: Build-Optimierung Frontend
-66. ⏳ P2: Deployment-Readiness-Check
+65. ✅ P2: Build-Optimierung Frontend (Vite Build clean)
+66. ✅ P2: Deployment-Readiness-Check
 
 ## Querschnittstasks (laufend)
 
@@ -102,7 +102,7 @@ Legende: ✅ erledigt | ❌ entfernt/entfallen | ⏳ offen
 70. ⏳ P2: Platzhalter-Assets durch finale Assets ersetzen
 
 ## Empfohlene Reihenfolge naechste Session
-1. Balancing Level 1-3 spieltesten (Telemetrie nutzen)
-2. Ggf. Wellen-Skalierung anpassen (aktuell 14%)
-3. Backend Score-Submit verdrahten (Task 28-31)
-4. Grafik-Phase planen
+1. Balancing Level 2/3 mit externen Tester-Daten feinjustieren
+2. Optional Rate-Limiting fuer /api/v1/runs implementieren
+3. Supabase service-role key rotieren und in Render aktualisieren
+4. Grafik-/Asset-Phase planen
