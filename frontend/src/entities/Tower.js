@@ -160,9 +160,28 @@ export class Tower {
 
     this.rangeGraphics.clear();
     this.rangeGraphics.fillStyle(rangeColor, 0.1);
-    this.rangeGraphics.fillCircle(this.x, this.y, this.range);
     this.rangeGraphics.lineStyle(1, rangeColor, 0.5);
-    this.rangeGraphics.strokeCircle(this.x, this.y, this.range);
+    
+    if (this.isGenerator) {
+      // Generator-Buff gilt exakt fuer die 8 umliegenden Felder (3x3 um den Generator)
+      const tileSize = this.scene?.TILE_SIZE || 40;
+      const areaSize = tileSize * 3;
+      this.rangeGraphics.fillRect(
+        this.x - areaSize / 2,
+        this.y - areaSize / 2,
+        areaSize,
+        areaSize
+      );
+      this.rangeGraphics.strokeRect(
+        this.x - areaSize / 2,
+        this.y - areaSize / 2,
+        areaSize,
+        areaSize
+      );
+    } else {
+      this.rangeGraphics.fillCircle(this.x, this.y, this.range);
+      this.rangeGraphics.strokeCircle(this.x, this.y, this.range);
+    }
 
     // Aktuelles Ziel visuell markieren
     this.targetLineGraphics.clear();
@@ -249,17 +268,19 @@ export class Tower {
       return;
     }
 
-    const GENERATOR_BUFF_RANGE = 150;
     const BUFF_AMOUNT = 0.15; // +15% Damage, nicht stapelbar
+    const tileSize = this.scene?.TILE_SIZE || 40;
 
     let hasNearbyGenerator = false;
     if (this.scene.towers) {
       for (const tower of this.scene.towers) {
         if (tower.isGenerator) {
-          const dx = tower.x - this.x;
-          const dy = tower.y - this.y;
-          const distance = Math.sqrt(dx * dx + dy * dy);
-          if (distance <= GENERATOR_BUFF_RANGE) {
+          // Exakt die 8 Nachbarfelder (inkl. diagonal), kein globaler Radius
+          const dx = Math.abs(tower.x - this.x);
+          const dy = Math.abs(tower.y - this.y);
+          const isNeighborField = dx <= tileSize && dy <= tileSize && (dx > 0 || dy > 0);
+
+          if (isNeighborField) {
             hasNearbyGenerator = true;
             break;
           }

@@ -3,6 +3,7 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const rateLimit = require("express-rate-limit");
+const crypto = require("crypto");
 const { createClient } = require("@supabase/supabase-js");
 
 /**
@@ -37,6 +38,14 @@ function parsePositiveIntEnv(value, fallback) {
 
 const runsRateLimitWindowMs = parsePositiveIntEnv(process.env.RUNS_RATE_LIMIT_WINDOW_MS, 60_000);
 const runsRateLimitMax = parsePositiveIntEnv(process.env.RUNS_RATE_LIMIT_MAX, 30);
+const challengeRateLimitWindowMs = parsePositiveIntEnv(process.env.CHALLENGE_RATE_LIMIT_WINDOW_MS, 60_000);
+const challengeRateLimitMax = parsePositiveIntEnv(process.env.CHALLENGE_RATE_LIMIT_MAX, 60);
+const runAuthTokenTtlSeconds = parsePositiveIntEnv(process.env.RUN_AUTH_TOKEN_TTL_SECONDS, 60);
+
+const configuredRunAuthSecret = process.env.RUN_AUTH_SECRET || "";
+const RUN_AUTH_SECRET = configuredRunAuthSecret || (isProduction ? "" : `dev-${crypto.randomBytes(32).toString("hex")}`);
+const hasRunAuthConfig = Boolean(RUN_AUTH_SECRET);
+const usedRunAuthNonces = new Map();
 
 const SUPABASE_URL = process.env.SUPABASE_URL || "";
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
@@ -72,6 +81,85 @@ const hasSupabaseConfig = Boolean(SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY && h
 const supabase = hasSupabaseConfig
   ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
   : null;
+
+function pruneExpiredRunAuthNonces(nowSec = Math.floor(Date.now() / 1000)) {
+  for (const [nonce, exp] of usedRunAuthNonces.entries()) {
+    if (!Number.isFinite(exp) || exp <= nowSec) {
+      usedRunAuthNonces.delete(nonce);
+    }
+  }
+}
+
+function signRunAuthPayload(payloadBase64) {
+  return crypto
+    .createHmac("sha256", RUN_AUTH_SECRET)
+    .update(payloadBase64)
+    .digest("base64url");
+}
+
+function createRunAuthToken(req) {
+  const nowSec = Math.floor(Date.now() / 1000);
+  const payload = {
+    nonce: crypto.randomBytes(16).toString("hex"),
+    iat: nowSec,
+    exp: nowSec + runAuthTokenTtlSeconds,
+    ip: req.ip || "",
+    ua: req.get("user-agent") || ""
+  };
+
+  const payloadBase64 = Buffer.from(JSON.stringify(payload), "utf8").toString("base64url");
+  const signature = signRunAuthPayload(payloadBase64);
+  return `${payloadBase64}.${signature}`;
+}
+
+function verifyAndConsumeRunAuthToken(token, req) {
+  if (!token || typeof token !== "string") {
+    return { ok: false, reason: "missing" };
+  }
+
+  const parts = token.split(".");
+  if (parts.length !== 2) {
+    return { ok: false, reason: "format" };
+  }
+
+  const [payloadBase64, providedSignature] = parts;
+  const expectedSignature = signRunAuthPayload(payloadBase64);
+  const providedBuffer = Buffer.from(providedSignature);
+  const expectedBuffer = Buffer.from(expectedSignature);
+
+  if (providedBuffer.length !== expectedBuffer.length || !crypto.timingSafeEqual(providedBuffer, expectedBuffer)) {
+    return { ok: false, reason: "signature" };
+  }
+
+  let payload;
+  try {
+    payload = JSON.parse(Buffer.from(payloadBase64, "base64url").toString("utf8"));
+  } catch {
+    return { ok: false, reason: "payload" };
+  }
+
+  const nowSec = Math.floor(Date.now() / 1000);
+  pruneExpiredRunAuthNonces(nowSec);
+
+  if (!payload || typeof payload !== "object" || !payload.nonce) {
+    return { ok: false, reason: "payload" };
+  }
+
+  if (!Number.isFinite(payload.exp) || payload.exp < nowSec) {
+    return { ok: false, reason: "expired" };
+  }
+
+  if (payload.ip !== (req.ip || "") || payload.ua !== (req.get("user-agent") || "")) {
+    return { ok: false, reason: "context" };
+  }
+
+  if (usedRunAuthNonces.has(payload.nonce)) {
+    return { ok: false, reason: "replay" };
+  }
+
+  usedRunAuthNonces.set(payload.nonce, payload.exp);
+  return { ok: true };
+}
 
 function parseAllowedOrigins() {
   const raw = process.env.ALLOWED_ORIGINS || "";
@@ -120,6 +208,35 @@ const submitRunsLimiter = rateLimit({
     error: "Zu viele Run-Submits in kurzer Zeit. Bitte kurz warten und erneut versuchen."
   }
 });
+
+const challengeLimiter = rateLimit({
+  windowMs: challengeRateLimitWindowMs,
+  limit: challengeRateLimitMax,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: {
+    error: "Zu viele Auth-Challenges in kurzer Zeit. Bitte kurz warten und erneut versuchen."
+  }
+});
+
+function requireRunSubmitAuth(req, res, next) {
+  if (!hasRunAuthConfig) {
+    return res.status(503).json({
+      error: "Run-Auth ist nicht konfiguriert. Setze RUN_AUTH_SECRET auf dem Backend."
+    });
+  }
+
+  const token = req.get("x-run-auth-token") || req.body?.runAuthToken;
+  const result = verifyAndConsumeRunAuthToken(token, req);
+  if (!result.ok) {
+    return res.status(401).json({
+      error: "Ungültiger oder abgelaufener Run-Auth-Token.",
+      code: result.reason
+    });
+  }
+
+  next();
+}
 
 function sanitizePlayerName(name) {
   const trimmed = String(name || "").trim();
@@ -183,7 +300,8 @@ app.get("/api/v1/health", (req, res) => {
     status: "ok",
     service: "highscore-api",
     environment: NODE_ENV,
-    supabaseConfigured: hasSupabaseConfig
+    supabaseConfigured: hasSupabaseConfig,
+    runAuthConfigured: hasRunAuthConfig
   };
 
   // Diagnosedetails nur ausserhalb Produktion zeigen
@@ -196,7 +314,21 @@ app.get("/api/v1/health", (req, res) => {
   res.status(200).json(payload);
 });
 
-app.post("/api/v1/runs", submitRunsLimiter, async (req, res) => {
+app.get("/api/v1/auth/challenge", challengeLimiter, (req, res) => {
+  if (!hasRunAuthConfig) {
+    return res.status(503).json({
+      error: "Run-Auth ist nicht konfiguriert. Setze RUN_AUTH_SECRET auf dem Backend."
+    });
+  }
+
+  const token = createRunAuthToken(req);
+  return res.status(200).json({
+    token,
+    expiresInSec: runAuthTokenTtlSeconds
+  });
+});
+
+app.post("/api/v1/runs", submitRunsLimiter, requireRunSubmitAuth, async (req, res) => {
   try {
     const body = req.body || {};
 
@@ -305,4 +437,7 @@ app.get("/api/v1/scores", async (req, res) => {
 
 app.listen(port, () => {
   console.log(`Server läuft auf http://localhost:${port}`);
+  if (!hasRunAuthConfig) {
+    console.warn("WARN: RUN_AUTH_SECRET fehlt. /api/v1/runs ist deaktiviert, bis Run-Auth konfiguriert ist.");
+  }
 });

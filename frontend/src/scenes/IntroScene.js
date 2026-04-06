@@ -3,20 +3,35 @@ export class IntroScene extends Phaser.Scene {
     super({ key: 'IntroScene' });
   }
 
+  preload() {
+    this.load.image('intro-bg', '/intro-bg.png');
+  }
+
   create() {
     const width = this.scale.width;
     const height = this.scale.height;
 
-    // Hintergrund
-    this.add.rectangle(width / 2, height / 2, width, height, 0x1a1a1a).setOrigin(0.5);
+    // Hintergrundbild
+    this.add.image(width / 2, height / 2, 'intro-bg')
+      .setDisplaySize(width, height)
+      .setOrigin(0.5);
+
+    // Globales Dark-Overlay für Lesbarkeit
+    this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.52).setOrigin(0.5);
+
+    // Panel hinter Anweisungen für stabile Lesbarkeit
+    const panelHeight = 520;
+    this.add.rectangle(width / 2, 360, 920, panelHeight, 0x0b1118, 0.72)
+      .setOrigin(0.5)
+      .setStrokeStyle(2, 0x3a4f63, 0.8);
 
     // Titel
     this.add.text(width / 2, 60, 'STEAMPUNK TOWER DEFENSE', {
       fontSize: '36px',
-      fill: '#ffff00',
+      fill: '#ffd166',
       fontFamily: 'Arial',
       fontStyle: 'bold'
-    }).setOrigin(0.5);
+    }).setOrigin(0.5).setShadow(0, 2, '#000000', 8, true, true);
 
     // Anleitung
     const instructionY = 150;
@@ -43,12 +58,12 @@ export class IntroScene extends Phaser.Scene {
     ];
 
     instructions.forEach((line, index) => {
-      let color = '#cccccc';
+      let color = '#f1f5f9';
       let fontSize = '14px';
       let bold = false;
 
       if (line === 'GRUNDLEGENDE STEUERUNG:' || line === 'TÜRME:' || line === 'GEGNER:') {
-        color = '#00ff00';
+        color = '#7dd3fc';
         fontSize = '16px';
         bold = true;
       }
@@ -59,7 +74,7 @@ export class IntroScene extends Phaser.Scene {
         fontFamily: 'Courier',
         fontStyle: bold ? 'bold' : 'normal',
         align: 'center'
-      }).setOrigin(0.5);
+      }).setOrigin(0.5).setShadow(0, 1, '#000000', 6, true, true);
     });
 
     // Start Button
@@ -68,18 +83,18 @@ export class IntroScene extends Phaser.Scene {
     const createButton = (x, y, text) => {
       const btn = this.add.text(x, y, text, {
         fontSize: '18px',
-        fill: '#00ff00',
+        fill: '#d1fae5',
         fontFamily: 'Courier',
         fontStyle: 'bold',
-        backgroundColor: '#003300',
+        backgroundColor: '#064e3b',
         padding: { x: 14, y: 6 }
       })
         .setOrigin(0.5)
         .setInteractive({ useHandCursor: true });
 
       btn.on('pointerdown', () => this.startGame(false));
-      btn.on('pointerover', () => btn.setStyle({ fill: '#ffff00' }));
-      btn.on('pointerout', () => btn.setStyle({ fill: '#00ff00' }));
+      btn.on('pointerover', () => btn.setStyle({ fill: '#fef08a', backgroundColor: '#065f46' }));
+      btn.on('pointerout', () => btn.setStyle({ fill: '#d1fae5', backgroundColor: '#064e3b' }));
 
       return btn;
     };
@@ -93,9 +108,9 @@ export class IntroScene extends Phaser.Scene {
     // Hinweis unten
     this.add.text(width / 2, height - 20, 'Leertaste/Button = normal | D = Debug-Start', {
       fontSize: '12px',
-      fill: '#888888',
+      fill: '#cbd5e1',
       fontFamily: 'Courier'
-    }).setOrigin(0.5);
+    }).setOrigin(0.5).setShadow(0, 1, '#000000', 5, true, true);
   }
 
   startGame(debugMode = false) {

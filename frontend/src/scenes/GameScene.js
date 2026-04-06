@@ -29,6 +29,7 @@ export default class GameScene extends Phaser.Scene {
 
   preload() {
     // Hier werden später Assets geladen (Sprites, Tilesets, etc.)
+    this.load.image('flamethrower-intro', '/flammenwerfer_intro.png');
     this.debugLog('GameScene preload');
   }
 
@@ -92,11 +93,17 @@ export default class GameScene extends Phaser.Scene {
     this.scoreSubmitButton = null;
     this.topScoresTitleText = null;
     this.topScoresText = null;
+    this.levelSplashVisible = false;
+    this.levelSplashElements = [];
+    this.consumeNextPointerDown = false;
     this.clientVersion = CLIENT_VERSION;
     const allowedTowers = this.currentLevel.allowedTowers;
-    this.towerTypeKeys = allowedTowers
-      ? Object.keys(TOWER_TYPES).filter(k => allowedTowers.includes(k))
-      : Object.keys(TOWER_TYPES);
+    this.towerSelectionOrder = ['steamCannon', 'generator', 'flamethrower', 'highPressure', 'Tesla'];
+    const allTowerKeys = Object.keys(TOWER_TYPES);
+    this.towerTypeKeys = this.towerSelectionOrder.filter((k) => {
+      if (!allTowerKeys.includes(k)) return false;
+      return !allowedTowers || allowedTowers.includes(k);
+    });
     this.selectedTowerIndex = this.towerTypeKeys.indexOf('steamCannon');
     if (this.selectedTowerIndex < 0) {
       this.selectedTowerIndex = 0;
@@ -129,31 +136,36 @@ export default class GameScene extends Phaser.Scene {
     const GRID_HEIGHT = 24; // 960 / 40
     const FIELD_TOP = this.HUD_HEIGHT; // Spielfeld fängt nach HUD an
 
-    // Gitter zeichnen zum Visualisieren (nur im Spielfeld-Bereich)
-    const graphics = this.make.graphics({ x: 0, y: FIELD_TOP, add: false });
-    graphics.lineStyle(1, 0x444444, 1);
+    // Grid-Marker zeichnen (X-Positionen statt Linien)
+    const gridGraphics = this.make.graphics({ x: 0, y: FIELD_TOP, add: false });
+    gridGraphics.lineStyle(1, 0x666666, 0.7);
 
-    // Vertikale Linien
+    // X-Marker bei jedem 40px-Raster-Punkt
+    const X_SIZE = 6;
     for (let x = 0; x <= this.scale.width; x += this.TILE_SIZE) {
-      graphics.beginPath();
-      graphics.moveTo(x, 0);
-      graphics.lineTo(x, this.scale.height - FIELD_TOP);
-      graphics.strokePath();
+      for (let y = 0; y <= this.scale.height - FIELD_TOP; y += this.TILE_SIZE) {
+        // Kleines X zeichnen
+        gridGraphics.beginPath();
+        gridGraphics.moveTo(x - X_SIZE / 2, y - X_SIZE / 2);
+        gridGraphics.lineTo(x + X_SIZE / 2, y + X_SIZE / 2);
+        gridGraphics.strokePath();
+        
+        gridGraphics.beginPath();
+        gridGraphics.moveTo(x + X_SIZE / 2, y - X_SIZE / 2);
+        gridGraphics.lineTo(x - X_SIZE / 2, y + X_SIZE / 2);
+        gridGraphics.strokePath();
+      }
     }
 
-    // Horizontale Linien
-    for (let y = 0; y <= this.scale.height - FIELD_TOP; y += this.TILE_SIZE) {
-      graphics.beginPath();
-      graphics.moveTo(0, y);
-      graphics.lineTo(this.scale.width, y);
-      graphics.strokePath();
-    }
-
-    graphics.generateTexture('grid', this.scale.width, this.scale.height - FIELD_TOP);
-    graphics.destroy();
+    gridGraphics.generateTexture('grid', this.scale.width, this.scale.height - FIELD_TOP);
+    gridGraphics.destroy();
 
     // Grid als Bild anzeigen (mit Offset)
     this.add.image(0, FIELD_TOP, 'grid').setOrigin(0, 0);
+
+    // Hoverfield-Highlight für Zielposition
+    this.hoverFieldGraphics = this.make.graphics({ x: 0, y: FIELD_TOP, add: true });
+    this.hoverFieldGraphics.setDepth(99);
 
     // Pfad visualisieren (als Felder, nicht als Linien, mit Offset)
     const levelPathKey = `level${this.currentLevel.levelNumber}`;
@@ -209,51 +221,53 @@ export default class GameScene extends Phaser.Scene {
     this.wavePreviewGraphics = this.make.graphics({ x: 0, y: 0, add: true });
     this.wavePreviewGraphics.setDepth(100);
 
-    this.infoText = this.add.text(10, 10, 'Gegner: 0', {
+    this.infoText = this.add.text(10, 8, 'Gegner: 0', {
       fontSize: '12px',
       fill: '#00ff00',
       fontFamily: 'Courier'
     });
 
-    this.goldText = this.add.text(10, 30, `Gold: ${this.gold}`, {
+    this.goldText = this.add.text(300, 8, `Gold: ${this.gold}`, {
       fontSize: '14px',
       fill: '#ffff00',
       fontFamily: 'Courier',
       fontStyle: 'bold'
     });
 
-    this.towerText = this.add.text(10, 50, `Türme: 0 | ${this.selectedTowerType.name} (${this.selectedTowerType.cost}g)`, {
+    this.towerText = this.add.text(10, 24, `Türme: 0 | ${this.selectedTowerType.name} (${this.selectedTowerType.cost}g)`, {
       fontSize: '12px',
       fill: '#ff88ff',
       fontFamily: 'Courier'
     });
 
-    this.towerSwitchFxText = this.add.text(10, 88, '', {
+    this.towerSwitchFxText = this.add.text(10, 40, '', {
       fontSize: '11px',
       fill: '#00ffff',
       fontFamily: 'Courier',
       fontStyle: 'bold'
     }).setAlpha(0);
 
-    this.sellModeText = this.add.text(320, 70, 'MODUS: BAUEN', {
-      fontSize: '11px',
-      fill: '#66ff66',
-      fontFamily: 'Courier',
-      fontStyle: 'bold'
-    });
+    this.towerTypeButtons = [];
+    this.hoveredTowerButtonKey = null;
+    this.createTowerTypeButtons(760, 74);
+
+    this.isSellMode = false;
+    this.modeVisualSellRatio = 0;
+    this.modeIndicatorTween = null;
+    this.createModeToggleControl(320, 56);
 
     // Tower-Cursor-Preview Graphics
     this.towerPreviewGraphics = this.make.graphics({ x: 0, y: 0, add: true });
     this.towerPreviewGraphics.setDepth(999);
 
-    this.add.text(10, 92, 'Click platzieren | Shift+Click verkaufen | T wechseln | S Speed', {
+    this.add.text(10, 96, 'Click je nach Modus | 1/2/3 Turmwahl | T wechseln | Shift = Verkauf | S Speed', {
       fontSize: '11px',
       fill: '#888888',
       fontFamily: 'Courier'
     });
 
     // Leben-Anzeige
-    this.livesText = this.add.text(600, 10, `Leben: ${this.lives}`, {
+    this.livesText = this.add.text(600, 8, `Leben: ${this.lives}`, {
       fontSize: '14px',
       fill: '#ff4444',
       fontFamily: 'Courier',
@@ -261,7 +275,7 @@ export default class GameScene extends Phaser.Scene {
     });
 
     // Wellen-Anzeige
-    this.waveText = this.add.text(600, 30, `Welle: ${this.currentWaveIndex + 1}/${this.currentLevel.totalWaves}`, {
+    this.waveText = this.add.text(600, 24, `Welle: ${this.currentWaveIndex + 1}/${this.currentLevel.totalWaves}`, {
       fontSize: '14px',
       fill: '#44ff44',
       fontFamily: 'Courier',
@@ -269,13 +283,13 @@ export default class GameScene extends Phaser.Scene {
     });
 
     // Wellen-Timer
-    this.waveTimerText = this.add.text(600, 50, 'Welle läuft...', {
+    this.waveTimerText = this.add.text(600, 40, 'Welle läuft...', {
       fontSize: '12px',
       fill: '#ffff44',
       fontFamily: 'Courier'
     });
 
-    this.speedText = this.add.text(600, 70, 'Speed: 1x [S]', {
+    this.speedText = this.add.text(600, 56, 'Speed: 1x [S]', {
       fontSize: '12px',
       fill: '#66ccff',
       fontFamily: 'Courier',
@@ -328,7 +342,9 @@ export default class GameScene extends Phaser.Scene {
 
     // Leertaste als Tastenkürzel für Skip
     this.input.keyboard.on('keydown-SPACE', () => {
-      if (this.isPaused) {
+      if (this.levelSplashVisible) {
+        this.closeLevelSplash();
+      } else if (this.isPaused) {
         this.togglePause();
       } else if (this.gameState === 'wave-pause') {
         this.wavePauseTimer = 0;
@@ -337,13 +353,26 @@ export default class GameScene extends Phaser.Scene {
 
     // Taste T: Turm-Typ zyklisch wechseln
     this.input.keyboard.on('keydown-T', () => {
-      if (this.isPaused) return;
+      if (this.isPaused || this.levelSplashVisible) return;
       this.cycleTowerType();
+    });
+
+    this.input.keyboard.on('keydown-ONE', () => {
+      if (this.isPaused || this.levelSplashVisible) return;
+      this.selectTowerTypeByNumber(1);
+    });
+    this.input.keyboard.on('keydown-TWO', () => {
+      if (this.isPaused || this.levelSplashVisible) return;
+      this.selectTowerTypeByNumber(2);
+    });
+    this.input.keyboard.on('keydown-THREE', () => {
+      if (this.isPaused || this.levelSplashVisible) return;
+      this.selectTowerTypeByNumber(3);
     });
 
     // Taste S: Spielgeschwindigkeit 1x/2x/3x
     this.input.keyboard.on('keydown-S', () => {
-      if (this.isPaused) return;
+      if (this.isPaused || this.levelSplashVisible) return;
       this.toggleGameSpeed();
     });
 
@@ -353,18 +382,22 @@ export default class GameScene extends Phaser.Scene {
     this.pauseTextTitle = null;
     this.pauseTextHint = null;
     this.input.keyboard.on('keydown-P', () => {
+      if (this.levelSplashVisible) return;
       this.togglePause();
     });
 
     this.isShiftPressed = false;
     this.input.keyboard.on('keydown-SHIFT', () => {
       this.isShiftPressed = true;
+      this.animateModeIndicator(120);
     });
     this.input.keyboard.on('keyup-SHIFT', () => {
       this.isShiftPressed = false;
+      this.animateModeIndicator(120);
     });
     this.game.events.on('blur', () => {
       this.isShiftPressed = false;
+      this.animateModeIndicator(120);
       if (this.game && this.game.canvas) {
         this.game.canvas.style.cursor = 'auto';
       }
@@ -372,15 +405,25 @@ export default class GameScene extends Phaser.Scene {
 
     // Click-Event für Turm-Platzierung oder -Verkauf
     this.input.on('pointerdown', (pointer) => {
-      if (this.isPaused) {
+      if (this.consumeNextPointerDown) {
+        this.consumeNextPointerDown = false;
+        return;
+      }
+
+      if (this.isPaused || this.levelSplashVisible) {
+        return;
+      }
+
+      if (pointer.y < this.HUD_HEIGHT) {
         return;
       }
 
       // Native Event-Modifikator ist für Safari stabiler als globaler Keyboard-State
       const isShiftPressed = Boolean(pointer.event && pointer.event.shiftKey);
-      
-      if (isShiftPressed) {
-        // Shift + Click: Turm verkaufen
+      const isSellAction = this.isSellMode || isShiftPressed;
+
+      if (isSellAction) {
+        // Verkaufsmodus oder Shift + Click: Turm verkaufen
         this.tryRemoveTower(pointer.x, pointer.y);
       } else {
         // Normal Click: Turm platzieren
@@ -388,7 +431,7 @@ export default class GameScene extends Phaser.Scene {
       }
     });
 
-    // Mouse-Move: Cursor ändern bei Hover über Turm
+    // Mouse-Move: Cursor ändern bei Hover über Turm oder nicht genug Gold
     this.input.on('pointermove', (pointer) => {
       if (this.isPaused) {
         this.game.canvas.style.cursor = 'auto';
@@ -398,11 +441,16 @@ export default class GameScene extends Phaser.Scene {
       const fieldY = pointer.y - this.HUD_HEIGHT;
       if (fieldY >= 0) {
         const isShiftPressed = Boolean(this.isShiftPressed);
+        const isSellModeActive = this.isSellMode || isShiftPressed;
         const tower = this.getTowerAtPosition(pointer.x, pointer.y);
-        if (isShiftPressed && tower) {
+        const hasEnoughGold = this.gold >= this.selectedTowerType.cost;
+
+        if (isSellModeActive && tower) {
           this.game.canvas.style.cursor = 'not-allowed'; // Rotes Verbotszeichen simulieren
-        } else if (isShiftPressed) {
+        } else if (isSellModeActive) {
           this.game.canvas.style.cursor = 'pointer'; // Verkaufsmodus aktiv
+        } else if (!hasEnoughGold) {
+          this.game.canvas.style.cursor = 'not-allowed'; // Nicht genug Gold
         } else {
           this.game.canvas.style.cursor = 'crosshair'; // Crosshair zum Platzieren
         }
@@ -415,6 +463,11 @@ export default class GameScene extends Phaser.Scene {
     this.gameState = 'wave-pause';
     this.wavePauseTimer = WAVE_CONFIG.INITIAL_BUILD_PAUSE;
     this.waveTimerText.setText(`Erste Welle in: ${Math.ceil(this.wavePauseTimer / 1000)}s`);
+
+    // Splash für Level-2 Turm-Freischaltung (auch bei direkter Levelwahl)
+    if (this.selectedLevelKey === 'level2') {
+      this.showLevel2Splash();
+    }
   }
 
   switchLevel(levelKey) {
@@ -478,6 +531,150 @@ export default class GameScene extends Phaser.Scene {
     });
   }
 
+  createModeToggleControl(x, y) {
+    const WIDTH = 210;
+    const HEIGHT = 28;
+    const HALF = WIDTH / 2;
+    const PADDING_X = 10;
+
+    this.modeToggleBg = this.add.graphics();
+    this.modeToggleBg.setDepth(120);
+
+    this.modeBuildButton = this.add.rectangle(x - HALF / 2, y, HALF, HEIGHT, 0xffffff, 0.001)
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true })
+      .setDepth(121);
+
+    this.modeSellButton = this.add.rectangle(x + HALF / 2, y, HALF, HEIGHT, 0xffffff, 0.001)
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true })
+      .setDepth(121);
+
+    this.modeBuildLabel = this.add.text(x - HALF + PADDING_X, y, '+ Bauen', {
+      fontSize: '12px',
+      fill: '#d7e2f0',
+      fontFamily: 'Courier',
+      fontStyle: 'bold'
+    }).setOrigin(0, 0.5).setDepth(122);
+
+    this.modeSellLabel = this.add.text(x + PADDING_X, y, '$ Verkaufen', {
+      fontSize: '12px',
+      fill: '#d7e2f0',
+      fontFamily: 'Courier',
+      fontStyle: 'bold'
+    }).setOrigin(0, 0.5).setDepth(122);
+
+    this.modeBuildButton.on('pointerdown', () => {
+      this.setSellMode(false);
+    });
+    this.modeSellButton.on('pointerdown', () => {
+      this.setSellMode(true);
+    });
+
+    this.modeBuildButton.on('pointerover', () => this.updateModeToggleButton('build'));
+    this.modeBuildButton.on('pointerout', () => this.updateModeToggleButton());
+    this.modeSellButton.on('pointerover', () => this.updateModeToggleButton('sell'));
+    this.modeSellButton.on('pointerout', () => this.updateModeToggleButton());
+
+    this.updateModeToggleButton();
+  }
+
+  setSellMode(nextIsSellMode) {
+    const changed = this.isSellMode !== nextIsSellMode;
+    this.isSellMode = nextIsSellMode;
+    if (changed) {
+      this.animateModeIndicator(120);
+    } else {
+      this.updateModeToggleButton();
+    }
+  }
+
+  animateModeIndicator(durationMs = 120) {
+    const target = (this.isSellMode || this.isShiftPressed) ? 1 : 0;
+    if (this.modeIndicatorTween) {
+      this.modeIndicatorTween.stop();
+      this.modeIndicatorTween = null;
+    }
+    this.modeIndicatorTween = this.tweens.add({
+      targets: this,
+      modeVisualSellRatio: target,
+      duration: durationMs,
+      ease: 'Sine.easeInOut',
+      onUpdate: () => this.updateModeToggleButton(),
+      onComplete: () => {
+        this.modeIndicatorTween = null;
+      }
+    });
+  }
+
+  mixColor(from, to, t) {
+    const clamped = Phaser.Math.Clamp(t, 0, 1);
+    const fr = (from >> 16) & 0xff;
+    const fg = (from >> 8) & 0xff;
+    const fb = from & 0xff;
+    const tr = (to >> 16) & 0xff;
+    const tg = (to >> 8) & 0xff;
+    const tb = to & 0xff;
+
+    const r = Math.round(fr + (tr - fr) * clamped);
+    const g = Math.round(fg + (tg - fg) * clamped);
+    const b = Math.round(fb + (tb - fb) * clamped);
+    return (r << 16) | (g << 8) | b;
+  }
+
+  updateModeToggleButton(hoveredSegment = null) {
+    if (!this.modeToggleBg) {
+      return;
+    }
+
+    const x = 320;
+    const y = 56;
+    const width = 210;
+    const height = 28;
+    const half = width / 2;
+    const leftX = x - half;
+    const rightX = x;
+
+    const isShiftOverride = this.isShiftPressed && !this.isSellMode;
+    const targetRatio = (this.isSellMode || this.isShiftPressed) ? 1 : 0;
+    if (!this.modeIndicatorTween) {
+      this.modeVisualSellRatio = targetRatio;
+    }
+
+    const leftActiveBlend = 1 - this.modeVisualSellRatio;
+    const rightActiveBlend = this.modeVisualSellRatio;
+
+    const leftColor = this.mixColor(0x1f2430, 0x2f7a4f, leftActiveBlend);
+    const rightActiveColor = isShiftOverride ? 0xaa6633 : 0x8a3d3d;
+    const rightColor = this.mixColor(0x1f2430, rightActiveColor, rightActiveBlend);
+
+    const leftAlpha = hoveredSegment === 'build' && leftActiveBlend < 0.95 ? 0.9 : 1;
+    const rightAlpha = hoveredSegment === 'sell' && rightActiveBlend < 0.95 ? 0.9 : 1;
+
+    this.modeToggleBg.clear();
+    this.modeToggleBg.fillStyle(0x151922, 1);
+    this.modeToggleBg.fillRoundedRect(leftX, y - height / 2, width, height, 6);
+    this.modeToggleBg.fillStyle(leftColor, leftAlpha);
+    this.modeToggleBg.fillRoundedRect(leftX + 2, y - height / 2 + 2, half - 3, height - 4, 4);
+    this.modeToggleBg.fillStyle(rightColor, rightAlpha);
+    this.modeToggleBg.fillRoundedRect(rightX + 1, y - height / 2 + 2, half - 3, height - 4, 4);
+    this.modeToggleBg.lineStyle(2, 0x4a5263, 1);
+    this.modeToggleBg.strokeRoundedRect(leftX, y - height / 2, width, height, 6);
+    this.modeToggleBg.lineStyle(1, 0x39404f, 1);
+    this.modeToggleBg.beginPath();
+    this.modeToggleBg.moveTo(x, y - height / 2 + 2);
+    this.modeToggleBg.lineTo(x, y + height / 2 - 2);
+    this.modeToggleBg.strokePath();
+
+    this.modeBuildLabel.setStyle({ fill: leftActiveBlend > 0.5 ? '#ffffff' : '#c7d0de' });
+    this.modeSellLabel.setStyle({ fill: rightActiveBlend > 0.5 ? '#ffffff' : '#c7d0de' });
+    if (isShiftOverride) {
+      this.modeSellLabel.setText('$ Verkaufen*');
+    } else {
+      this.modeSellLabel.setText('$ Verkaufen');
+    }
+  }
+
   toggleGameSpeed() {
     // Zyklisch: 1x -> 2x -> 3x -> 1x
     if (this.gameSpeedMultiplier === 1) {
@@ -504,16 +701,132 @@ export default class GameScene extends Phaser.Scene {
       return;
     }
 
-    this.selectedTowerIndex = (this.selectedTowerIndex + 1) % this.towerTypeKeys.length;
-    const nextKey = this.towerTypeKeys[this.selectedTowerIndex];
-    this.selectedTowerType = TOWER_TYPES[nextKey];
+    const nextIndex = (this.selectedTowerIndex + 1) % this.towerTypeKeys.length;
+    this.selectTowerTypeByKey(this.towerTypeKeys[nextIndex]);
+  }
+
+  getTowerButtonLabel(towerKey) {
+    const shortLabels = {
+      steamCannon: 'DK',
+      highPressure: 'HD',
+      flamethrower: 'FW',
+      Tesla: 'TS',
+      generator: 'GEN'
+    };
+    return shortLabels[towerKey] || towerKey.slice(0, 3).toUpperCase();
+  }
+
+  createTowerTypeButtons(startX, y) {
+    const BTN_WIDTH = 58;
+    const BTN_HEIGHT = 26;
+    const GAP = 6;
+
+    this.towerTypeButtons.forEach((btn) => {
+      btn.bg.destroy();
+      btn.swatch.destroy();
+      btn.label.destroy();
+      btn.cost.destroy();
+    });
+    this.towerTypeButtons = [];
+
+    this.towerSelectionOrder.forEach((towerKey, slotIndex) => {
+      if (!this.towerTypeKeys.includes(towerKey)) {
+        return;
+      }
+
+      const towerType = TOWER_TYPES[towerKey];
+      const x = startX + slotIndex * (BTN_WIDTH + GAP) + BTN_WIDTH / 2;
+
+      const bg = this.add.rectangle(x, y, BTN_WIDTH, BTN_HEIGHT, 0x1f2430, 1)
+        .setOrigin(0.5)
+        .setStrokeStyle(1, 0x4a5263, 1)
+        .setInteractive({ useHandCursor: true })
+        .setDepth(121);
+
+      const swatch = this.add.rectangle(x - BTN_WIDTH / 2 + 8, y, 8, 8, towerType.color, 1)
+        .setOrigin(0.5)
+        .setDepth(122);
+
+      const label = this.add.text(x - BTN_WIDTH / 2 + 14, y - 5, this.getTowerButtonLabel(towerKey), {
+        fontSize: '10px',
+        fill: '#d7e2f0',
+        fontFamily: 'Courier',
+        fontStyle: 'bold'
+      }).setOrigin(0, 0.5).setDepth(122);
+
+      const cost = this.add.text(x - BTN_WIDTH / 2 + 14, y + 6, `${towerType.cost}g`, {
+        fontSize: '9px',
+        fill: '#aab3c2',
+        fontFamily: 'Courier'
+      }).setOrigin(0, 0.5).setDepth(122);
+
+      bg.on('pointerdown', () => {
+        this.selectTowerTypeByKey(towerKey);
+      });
+      bg.on('pointerover', () => {
+        this.hoveredTowerButtonKey = towerKey;
+        this.updateTowerTypeButtons();
+      });
+      bg.on('pointerout', () => {
+        this.hoveredTowerButtonKey = null;
+        this.updateTowerTypeButtons();
+      });
+
+      this.towerTypeButtons.push({ towerKey, bg, swatch, label, cost });
+    });
+
+    this.updateTowerTypeButtons();
+  }
+
+  updateTowerTypeButtons() {
+    if (!this.towerTypeButtons) {
+      return;
+    }
+
+    this.towerTypeButtons.forEach((btn) => {
+      const isSelected = this.towerTypeKeys[this.selectedTowerIndex] === btn.towerKey;
+      const isHovered = this.hoveredTowerButtonKey === btn.towerKey;
+
+      const fillColor = isSelected ? 0x2b5f89 : (isHovered ? 0x2a3142 : 0x1f2430);
+      const borderColor = isSelected ? 0x6ec6ff : 0x4a5263;
+      btn.bg.setFillStyle(fillColor, 1);
+      btn.bg.setStrokeStyle(isSelected ? 2 : 1, borderColor, 1);
+
+      btn.label.setStyle({ fill: isSelected ? '#ffffff' : '#d7e2f0' });
+      btn.cost.setStyle({ fill: isSelected ? '#d7f0ff' : '#aab3c2' });
+    });
+  }
+
+  selectTowerTypeByNumber(slotNumber) {
+    const numberToTower = {
+      1: 'steamCannon',
+      2: 'generator',
+      3: 'flamethrower'
+    };
+
+    const towerKey = numberToTower[slotNumber];
+    if (!towerKey || !this.towerTypeKeys.includes(towerKey)) {
+      return;
+    }
+
+    this.selectTowerTypeByKey(towerKey);
+  }
+
+  selectTowerTypeByKey(towerKey) {
+    const index = this.towerTypeKeys.indexOf(towerKey);
+    if (index < 0) {
+      return;
+    }
+
+    this.selectedTowerIndex = index;
+    this.selectedTowerType = TOWER_TYPES[towerKey];
+    this.updateTowerTypeButtons();
 
     if (this.towerText) {
       this.towerText.setText(`Türme: ${this.towers.length} | ${this.selectedTowerType.name} (${this.selectedTowerType.cost}g)`);
     }
 
     this.showTowerSwitchFeedback();
-
     this.debugLog(`Turm gewechselt: ${this.selectedTowerType.name} (${this.selectedTowerType.cost}g)`);
   }
 
@@ -545,12 +858,12 @@ export default class GameScene extends Phaser.Scene {
 
     if (this.towerSwitchFxText) {
       this.towerSwitchFxText.setText(`>> ${this.selectedTowerType.name} aktiv`);
-      this.towerSwitchFxText.setY(88);
+      this.towerSwitchFxText.setY(40);
       this.towerSwitchFxText.setAlpha(1);
 
       this.towerSwitchFadeTween = this.tweens.add({
         targets: this.towerSwitchFxText,
-        y: 82,
+        y: 34,
         alpha: 0,
         duration: 700,
         ease: 'Quad.easeOut'
@@ -566,6 +879,9 @@ export default class GameScene extends Phaser.Scene {
     // Nur im Spielfeld anzeigen (nicht im HUD oder Endscreen)
     if (this.gameState === 'won' || this.gameState === 'lost') {
       this.towerPreviewGraphics.clear();
+      if (this.hoverFieldGraphics) {
+        this.hoverFieldGraphics.clear();
+      }
       return;
     }
 
@@ -577,23 +893,62 @@ export default class GameScene extends Phaser.Scene {
     // Nur im Spielfeld zeigen (y >= HUD_HEIGHT)
     if (y < this.HUD_HEIGHT) {
       this.towerPreviewGraphics.clear();
+      if (this.hoverFieldGraphics) {
+        this.hoverFieldGraphics.clear();
+      }
       return;
     }
 
     this.towerPreviewGraphics.clear();
+    if (this.hoverFieldGraphics) {
+      this.hoverFieldGraphics.clear();
+    }
+
+    // Prüfen ob genug Gold für Turm-Platzierung
+    const hasEnoughGold = this.gold >= this.selectedTowerType.cost;
+
+    // Zielfeld auf Grid snappen und hervorheben
+    const gridX = Math.round(x / this.TILE_SIZE) * this.TILE_SIZE;
+    const gridY = Math.round((y - this.HUD_HEIGHT) / this.TILE_SIZE) * this.TILE_SIZE;
+    
+    if (this.hoverFieldGraphics) {
+      // Zielfeld-Farbe: Rot bei nicht genug Gold, sonst Weiß
+      const fieldColor = hasEnoughGold ? 0xffffff : 0xff4444;
+      const fieldAlpha = hasEnoughGold ? 0.15 : 0.25;
+      this.hoverFieldGraphics.fillStyle(fieldColor, fieldAlpha);
+      this.hoverFieldGraphics.fillRect(gridX - this.TILE_SIZE / 2, gridY - this.TILE_SIZE / 2, this.TILE_SIZE, this.TILE_SIZE);
+    }
 
     // Tower-Preview als durchsichtiges Quadrat (40x40) mit Range-Kreis
     const TOWER_WIDTH = 40;
     const TOWER_HEIGHT = 40;
+    const previewAlpha = hasEnoughGold ? 0.4 : 0.15;
+    const rangeAlpha = hasEnoughGold ? 0.05 : 0.02;
 
-    // Range-Kreis zeichnen (sehr transparent)
-    this.towerPreviewGraphics.fillStyle(this.selectedTowerType.color, 0.05);
-    this.towerPreviewGraphics.fillCircle(x, y, this.selectedTowerType.range);
-    this.towerPreviewGraphics.lineStyle(1, this.selectedTowerType.color, 0.3);
-    this.towerPreviewGraphics.strokeCircle(x, y, this.selectedTowerType.range);
+    // Reichweiten-Vorschau zeichnen (Generator: 3x3-Feld, sonst Kreis)
+    this.towerPreviewGraphics.fillStyle(this.selectedTowerType.color, rangeAlpha);
+    this.towerPreviewGraphics.lineStyle(1, this.selectedTowerType.color, hasEnoughGold ? 0.3 : 0.15);
+    if (this.selectedTowerType.isBuff) {
+      const areaSize = this.TILE_SIZE * 3;
+      this.towerPreviewGraphics.fillRect(
+        x - areaSize / 2,
+        y - areaSize / 2,
+        areaSize,
+        areaSize
+      );
+      this.towerPreviewGraphics.strokeRect(
+        x - areaSize / 2,
+        y - areaSize / 2,
+        areaSize,
+        areaSize
+      );
+    } else {
+      this.towerPreviewGraphics.fillCircle(x, y, this.selectedTowerType.range);
+      this.towerPreviewGraphics.strokeCircle(x, y, this.selectedTowerType.range);
+    }
 
     // Tower-Quadrat zeichnen (semi-transparent zur Farbe des Turms)
-    this.towerPreviewGraphics.fillStyle(this.selectedTowerType.color, 0.4);
+    this.towerPreviewGraphics.fillStyle(this.selectedTowerType.color, previewAlpha);
     this.towerPreviewGraphics.fillRect(
       x - TOWER_WIDTH / 2,
       y - TOWER_HEIGHT / 2,
@@ -602,7 +957,7 @@ export default class GameScene extends Phaser.Scene {
     );
 
     // Outline
-    this.towerPreviewGraphics.lineStyle(2, this.selectedTowerType.color, 0.7);
+    this.towerPreviewGraphics.lineStyle(2, this.selectedTowerType.color, hasEnoughGold ? 0.7 : 0.35);
     this.towerPreviewGraphics.strokeRect(
       x - TOWER_WIDTH / 2,
       y - TOWER_HEIGHT / 2,
@@ -760,6 +1115,13 @@ export default class GameScene extends Phaser.Scene {
   update(time, deltaTime) {
     const scaledDeltaTime = deltaTime * this.gameSpeedMultiplier;
 
+    if (this.levelSplashVisible) {
+      if (this.towerPreviewGraphics) {
+        this.towerPreviewGraphics.clear();
+      }
+      return;
+    }
+
     if (this.isPaused) {
       if (this.towerPreviewGraphics) {
         this.towerPreviewGraphics.clear();
@@ -793,16 +1155,6 @@ export default class GameScene extends Phaser.Scene {
     if (this.speedText) {
       this.speedText.setText(`Speed: ${this.gameSpeedMultiplier}x [S]`);
     }
-    if (this.sellModeText) {
-      if (this.isShiftPressed) {
-        this.sellModeText.setText('MODUS: VERKAUF (Shift gehalten)');
-        this.sellModeText.setStyle({ fill: '#ff6666' });
-      } else {
-        this.sellModeText.setText('MODUS: BAUEN');
-        this.sellModeText.setStyle({ fill: '#66ff66' });
-      }
-    }
-
     // Game-State Checks (nach HUD-Update!)
     if (this.gameState === 'won' || this.gameState === 'lost') {
       if (!this.endScreenShown) {
@@ -938,8 +1290,12 @@ export default class GameScene extends Phaser.Scene {
       return;
     }
 
-    const absoluteY = screenY;
-    const tower = this.getTowerAtPosition(screenX, absoluteY);
+    // Auf Grid-Position snappen (wie beim Platzieren!)
+    const gridX = Math.round(screenX / this.TILE_SIZE) * this.TILE_SIZE;
+    const gridY = Math.round(fieldY / this.TILE_SIZE) * this.TILE_SIZE;
+    const absoluteY = gridY + this.HUD_HEIGHT;
+
+    const tower = this.getTowerAtPosition(gridX, absoluteY);
     
     if (!tower) {
       return; // Kein Turm getroffen
@@ -1213,6 +1569,21 @@ export default class GameScene extends Phaser.Scene {
     }
   }
 
+  async requestRunAuthToken() {
+    const response = await fetch(`${API_BASE_URL}/api/v1/auth/challenge`);
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Run-Auth-Token konnte nicht geholt werden.');
+    }
+
+    if (!data.token || typeof data.token !== 'string') {
+      throw new Error('Backend lieferte keinen gültigen Run-Auth-Token.');
+    }
+
+    return data.token;
+  }
+
   async requestAndSubmitRun() {
     if (this.isSubmittingRun) {
       return;
@@ -1238,15 +1609,24 @@ export default class GameScene extends Phaser.Scene {
 
     localStorage.setItem('browsergame_player_name', playerName);
     this.isSubmittingRun = true;
-    this.setScoreSubmitStatus('Speichere Run und Nutzungsstatistik ...', '#ffff88');
+    this.setScoreSubmitStatus('Hole Sicherheits-Token ...', '#ffff88');
 
     try {
+      const runAuthToken = await this.requestRunAuthToken();
+
+      this.setScoreSubmitStatus('Speichere Run und Nutzungsstatistik ...', '#ffff88');
+      const payload = {
+        ...this.buildRunSubmissionPayload(playerName),
+        runAuthToken
+      };
+
       const response = await fetch(`${API_BASE_URL}/api/v1/runs`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'X-Run-Auth-Token': runAuthToken
         },
-        body: JSON.stringify(this.buildRunSubmissionPayload(playerName))
+        body: JSON.stringify(payload)
       });
 
       const data = await response.json().catch(() => ({}));
@@ -1741,6 +2121,81 @@ export default class GameScene extends Phaser.Scene {
       fill: '#cccccc',
       fontFamily: 'Courier'
     }).setOrigin(0.5).setDepth(10000);
+  }
+
+  showLevel2Splash() {
+    this.levelSplashVisible = true;
+
+    const width = this.scale.width;
+    const height = this.scale.height;
+    const centerX = width / 2;
+    const centerY = height / 2;
+
+    const overlay = this.add.rectangle(centerX, centerY, width, height, 0x000000, 0.85)
+      .setDepth(11000)
+      .setInteractive();
+
+    const panel = this.add.rectangle(centerX, centerY, 920, 620, 0x111827, 0.96)
+      .setStrokeStyle(3, 0xff6633, 1)
+      .setDepth(11001);
+
+    const title = this.add.text(centerX, centerY - 255, 'NEUER TURM FREIGESCHALTET', {
+      fontSize: '28px',
+      fill: '#ffd166',
+      fontFamily: 'Courier',
+      fontStyle: 'bold'
+    }).setOrigin(0.5).setDepth(11002);
+
+    const towerName = this.add.text(centerX, centerY - 215, 'FLAMMENWERFER', {
+      fontSize: '36px',
+      fill: '#ff5a36',
+      fontFamily: 'Courier',
+      fontStyle: 'bold'
+    }).setOrigin(0.5).setDepth(11002);
+
+    const image = this.add.image(centerX, centerY - 25, 'flamethrower-intro')
+      .setDepth(11002)
+      .setDisplaySize(360, 260);
+
+    const desc = this.add.text(centerX, centerY + 165,
+      'Kurze Reichweite, aber brutaler Dauerschaden.\n' +
+      'Trifft ein Ziel kontinuierlich mit dem Beam\n' +
+      'und hinterlässt Nachbrennen (DoT), wenn es entkommt.', {
+      fontSize: '18px',
+      fill: '#e5e7eb',
+      fontFamily: 'Courier',
+      align: 'center',
+      lineSpacing: 6
+    }).setOrigin(0.5).setDepth(11002);
+
+    const hint = this.add.text(centerX, centerY + 260, '[ LEERTASTE oder KLICK zum Fortfahren ]', {
+      fontSize: '14px',
+      fill: '#93c5fd',
+      fontFamily: 'Courier',
+      fontStyle: 'bold'
+    }).setOrigin(0.5).setDepth(11002);
+
+    overlay.on('pointerdown', () => this.closeLevelSplash(true));
+
+    this.levelSplashElements = [overlay, panel, title, towerName, image, desc, hint];
+  }
+
+  closeLevelSplash(fromPointer = false) {
+    if (!this.levelSplashVisible) {
+      return;
+    }
+
+    this.levelSplashVisible = false;
+    for (const element of this.levelSplashElements) {
+      if (element && element.destroy) {
+        element.destroy();
+      }
+    }
+    this.levelSplashElements = [];
+
+    if (fromPointer) {
+      this.consumeNextPointerDown = true;
+    }
   }
 
 }

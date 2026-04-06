@@ -38,6 +38,7 @@ export const LEVELS = {
     levelNumber: 2,
     displayName: 'Advanced',
     totalWaves: 20,
+    allowedTowers: ['steamCannon', 'generator', 'flamethrower'],
     waves: [
       'nnn',                    // W1:  3n
       'nnnn.s',                 // W2:  4n 1s
