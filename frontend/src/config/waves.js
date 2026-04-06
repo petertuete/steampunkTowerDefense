@@ -15,17 +15,18 @@ export const LEVELS = {
     levelNumber: 1,
     displayName: 'Beginner',
     totalWaves: 15,
+    allowedTowers: ['steamCannon', 'generator'],
     waves: [
-      'n.nn.nnn.nnnn.nnnnn',    // W1:  15n 0s 0a
-      'nnnnnn.sss.aaa',         // W2:  6n 3s 3a
-      'nnnnn.ssss.aaaa',        // W3:  5n 4s 4a
-      'nnn.ssssss.aaaaaa',      // W4:  3n 6s 6a
-      'nn.sssssss.aaaaaa',      // W5:  2n 7s 6a
-      'n.ssssssss.aaaaaaa',     // W6:  1n 8s 7a
-      'ssssssss.aaaaaaaa',      // W7:  8s 8a
-      'sssssssss.aaaaaaaa',     // W8:  9s 8a
-      'ssssssss.aaaaaaaaa',     // W9:  8s 9a
-      'sssssss.aaaaaaaaaa',     // W10: 7s 10a
+      'n...nn..nnn.nnnn',       // W1:  10n 0s 0a
+      'nnn.nnn.nnnn',           // W2:  10n 0s 0a
+      'nnn.nnn..s..s',          // W3:  6n 2s 0a
+      'nnn.s.nnn.ss',           // W4:  6n 3s 0a
+      'n.s.n.s.ns.ns.nsns',     // W5:  6n 7s 0a
+      'n.s.ns.s.ns.sns.sns',    // W6:  4n 8s 0a  - speed-dominant, kein a
+      'nn.a..nn.a',             // W7:  4n 2a 0s  - erste Armored, kleine Gruppen
+      'nnn.aa.nnn.aa',          // W8:  6n 4a 0s  - mehr Armored, Paare
+      'nn.aaa.nn.aaa',          // W9:  4n 6a 0s  - Armored-Mehrheit
+      'n.aaaa.n.aaaa.a',        // W10: 2n 9a 0s  - fast nur Armored, Druckwelle
       'n.ssssssss.aaaaaaaaa',   // W11: 1n 8s 9a
       'n.sssssssss.aaaaaaaaa',  // W12: 1n 9s 9a
       'ssssssssss.aaaaaaaaa',   // W13: 10s 9a

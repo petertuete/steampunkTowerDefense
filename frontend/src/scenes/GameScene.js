@@ -29,11 +29,24 @@ export default class GameScene extends Phaser.Scene {
 
   preload() {
     // Hier werden später Assets geladen (Sprites, Tilesets, etc.)
-    console.log('GameScene preload');
+    this.debugLog('GameScene preload');
   }
 
   init(data) {
     this.restartData = data || {};
+    this.debugMode = Boolean(this.restartData.debugMode || this.restartData.carryState?.debugMode);
+  }
+
+  debugLog(...args) {
+    if (this.debugMode) {
+      console.log(...args);
+    }
+  }
+
+  debugWarn(...args) {
+    if (this.debugMode) {
+      console.warn(...args);
+    }
   }
 
   create() {
@@ -80,12 +93,35 @@ export default class GameScene extends Phaser.Scene {
     this.topScoresTitleText = null;
     this.topScoresText = null;
     this.clientVersion = CLIENT_VERSION;
-    this.towerTypeKeys = Object.keys(TOWER_TYPES);
+    const allowedTowers = this.currentLevel.allowedTowers;
+    this.towerTypeKeys = allowedTowers
+      ? Object.keys(TOWER_TYPES).filter(k => allowedTowers.includes(k))
+      : Object.keys(TOWER_TYPES);
     this.selectedTowerIndex = this.towerTypeKeys.indexOf('steamCannon');
     if (this.selectedTowerIndex < 0) {
       this.selectedTowerIndex = 0;
     }
     this.selectedTowerType = TOWER_TYPES[this.towerTypeKeys[this.selectedTowerIndex]];
+    
+    // Wave-Preview Tracking
+    this.waveSpawnSequence = null;
+    this.waveSpawnIndex = 0;
+    this.defeatedInWaveMap = new Map(); // Map von Enemy-ID zu true wenn besiegt
+    this.wavePreviewGraphics = null;
+    
+    // Manuales Wave-Spawn-Timing (mit deltaTime-Tracking, skaliert mit Speed)
+    this.waveSpawning = false;
+    this.waveSpawnSequenceIndex = 0;  // Wo wir im spawnSequence-Array sind
+    this.remainingSpawnDelay = 0;  // Verbleibende Zeit bis zum nächsten Spawn (wird mit Speed skaliert)
+
+    // Zeitachsen seit Levelbeginn
+    this.levelStartRealMs = performance.now();
+    this.levelElapsedGameMs = 0;
+
+    // Zeitachsen seit Wave-Beginn (werden in startWave gesetzt)
+    this.waveStartRealMs = this.levelStartRealMs;
+    this.waveStartGameMs = 0;
+    
     this.ensureLevelUsageBucket(this.selectedLevelKey);
 
     // Basis-Konfiguration
@@ -168,6 +204,10 @@ export default class GameScene extends Phaser.Scene {
     const hudBackground = this.make.graphics({ x: 0, y: 0, add: true });
     hudBackground.fillStyle(0x000000, 0.7);
     hudBackground.fillRect(0, 0, this.scale.width, this.HUD_HEIGHT);
+
+    // Wave-Preview Graphic (rechts neben Wellen-Info)
+    this.wavePreviewGraphics = this.make.graphics({ x: 0, y: 0, add: true });
+    this.wavePreviewGraphics.setDepth(100);
 
     this.infoText = this.add.text(10, 10, 'Gegner: 0', {
       fontSize: '12px',
@@ -281,26 +321,39 @@ export default class GameScene extends Phaser.Scene {
     this.skipWaveBtn.on('pointerover', () => this.skipWaveBtn.setStyle({ fill: '#ffff00' }));
     this.skipWaveBtn.on('pointerout', () => this.skipWaveBtn.setStyle({ fill: '#ffffff' }));
     this.skipWaveBtn.on('pointerdown', () => {
-      if (this.gameState === 'wave-pause') {
+      if (!this.isPaused && this.gameState === 'wave-pause') {
         this.wavePauseTimer = 0;
       }
     });
 
     // Leertaste als Tastenkürzel für Skip
     this.input.keyboard.on('keydown-SPACE', () => {
-      if (this.gameState === 'wave-pause') {
+      if (this.isPaused) {
+        this.togglePause();
+      } else if (this.gameState === 'wave-pause') {
         this.wavePauseTimer = 0;
       }
     });
 
     // Taste T: Turm-Typ zyklisch wechseln
     this.input.keyboard.on('keydown-T', () => {
+      if (this.isPaused) return;
       this.cycleTowerType();
     });
 
-    // Taste S: Spielgeschwindigkeit 1x/2x
+    // Taste S: Spielgeschwindigkeit 1x/2x/3x
     this.input.keyboard.on('keydown-S', () => {
+      if (this.isPaused) return;
       this.toggleGameSpeed();
+    });
+
+    // Taste P: Pause/Resume
+    this.isPaused = false;
+    this.pauseOverlay = null;
+    this.pauseTextTitle = null;
+    this.pauseTextHint = null;
+    this.input.keyboard.on('keydown-P', () => {
+      this.togglePause();
     });
 
     this.isShiftPressed = false;
@@ -319,6 +372,10 @@ export default class GameScene extends Phaser.Scene {
 
     // Click-Event für Turm-Platzierung oder -Verkauf
     this.input.on('pointerdown', (pointer) => {
+      if (this.isPaused) {
+        return;
+      }
+
       // Native Event-Modifikator ist für Safari stabiler als globaler Keyboard-State
       const isShiftPressed = Boolean(pointer.event && pointer.event.shiftKey);
       
@@ -333,6 +390,11 @@ export default class GameScene extends Phaser.Scene {
 
     // Mouse-Move: Cursor ändern bei Hover über Turm
     this.input.on('pointermove', (pointer) => {
+      if (this.isPaused) {
+        this.game.canvas.style.cursor = 'auto';
+        return;
+      }
+
       const fieldY = pointer.y - this.HUD_HEIGHT;
       if (fieldY >= 0) {
         const isShiftPressed = Boolean(this.isShiftPressed);
@@ -361,7 +423,7 @@ export default class GameScene extends Phaser.Scene {
     }
 
     this.selectedLevelKey = levelKey;
-    this.scene.restart();
+    this.scene.restart({ debugMode: this.debugMode });
   }
 
   getOrderedLevelKeys() {
@@ -393,11 +455,13 @@ export default class GameScene extends Phaser.Scene {
       towerUsageByLevel: JSON.parse(JSON.stringify(this.towerUsageByLevel)),
       nextTowerPlacementId: this.nextTowerPlacementId,
       completedLevelKeys: [...this.completedLevelKeys, this.selectedLevelKey],
-      accumulatedScoreGold: this.accumulatedScoreGold + this.gold
+      accumulatedScoreGold: this.accumulatedScoreGold + this.gold,
+      debugMode: this.debugMode
     };
 
     this.scene.restart({
       campaignContinue: true,
+      debugMode: this.debugMode,
       selectedLevelKey: nextLevelKey,
       carryState
     });
@@ -415,18 +479,24 @@ export default class GameScene extends Phaser.Scene {
   }
 
   toggleGameSpeed() {
-    this.gameSpeedMultiplier = this.gameSpeedMultiplier === 1 ? 2 : 1;
-
-    if (this.waveSpawnTimer) {
-      this.waveSpawnTimer.timeScale = this.gameSpeedMultiplier;
+    // Zyklisch: 1x -> 2x -> 3x -> 1x
+    if (this.gameSpeedMultiplier === 1) {
+      this.gameSpeedMultiplier = 2;
+    } else if (this.gameSpeedMultiplier === 2) {
+      this.gameSpeedMultiplier = 3;
+    } else {
+      this.gameSpeedMultiplier = 1;
     }
 
     if (this.speedText) {
       this.speedText.setText(`Speed: ${this.gameSpeedMultiplier}x [S]`);
-      this.speedText.setStyle({ fill: this.gameSpeedMultiplier > 1 ? '#ffaa66' : '#66ccff' });
+      let speedColor = '#66ccff'; // 1x: Cyan
+      if (this.gameSpeedMultiplier === 2) speedColor = '#ffaa66'; // 2x: Orange
+      if (this.gameSpeedMultiplier === 3) speedColor = '#ff4444'; // 3x: Rot
+      this.speedText.setStyle({ fill: speedColor });
     }
 
-    console.log(`⏩ Spielgeschwindigkeit: ${this.gameSpeedMultiplier}x`);
+    this.debugLog(`⏩ Spielgeschwindigkeit: ${this.gameSpeedMultiplier}x`);
   }
 
   cycleTowerType() {
@@ -444,7 +514,7 @@ export default class GameScene extends Phaser.Scene {
 
     this.showTowerSwitchFeedback();
 
-    console.log(`Turm gewechselt: ${this.selectedTowerType.name} (${this.selectedTowerType.cost}g)`);
+    this.debugLog(`Turm gewechselt: ${this.selectedTowerType.name} (${this.selectedTowerType.cost}g)`);
   }
 
   showTowerSwitchFeedback() {
@@ -541,11 +611,168 @@ export default class GameScene extends Phaser.Scene {
     );
   }
 
+  updateWaveSpawning(deltaTime) {
+    // Wave-Spawning in Game-Time:
+    // remainingSpawnDelay bleibt in Basis-ms (z.B. 1000),
+    // scaledDeltaTime bringt den Speed-Faktor rein.
+    if (!this.waveSpawning) {
+      return;
+    }
+
+    const scaledDeltaTime = deltaTime * this.gameSpeedMultiplier;
+    
+    // Verbleibende Zeit abzählen
+    this.remainingSpawnDelay -= scaledDeltaTime;
+
+    // Gegner spawnen wenn Zeit abgelaufen
+    if (this.remainingSpawnDelay <= 0) {
+      const ENEMY_TYPE_MAP = { n: 'normal', s: 'fast', a: 'armored' };
+      
+      // Durch spawnSequence gehen bis nächster Gegner/Aktion
+      while (this.waveSpawnSequenceIndex < this.waveSpawnSequence.length) {
+        const char = this.waveSpawnSequence[this.waveSpawnSequenceIndex];
+
+        if (char === '.') {
+          // Pause
+          // Overshoot beibehalten, damit kein Timing-Drift entsteht
+          this.remainingSpawnDelay += WAVE_CONFIG.EXTRA_PAUSE_MS;
+          this.waveSpawnSequenceIndex++;
+          const elapsedRealMs = Math.floor(performance.now() - this.waveStartRealMs);
+          const elapsedGameMs = Math.floor(this.levelElapsedGameMs - this.waveStartGameMs);
+          const nextRealMs = Math.floor(this.remainingSpawnDelay / this.gameSpeedMultiplier);
+          this.debugLog(`[SPAWN tRealWave=${elapsedRealMs}ms tGameWave=${elapsedGameMs}ms] Pause: next in game=${this.remainingSpawnDelay.toFixed(0)}ms real~=${nextRealMs}ms (Speed=${this.gameSpeedMultiplier}x)`);
+          return;
+        } else if (ENEMY_TYPE_MAP[char]) {
+          // Gegner spawnen
+          const enemy = new Enemy(this, this.currentPath, { type: ENEMY_TYPE_MAP[char] });
+          enemy.waveSpawnIndex = this.waveSpawnIndex;
+          this.enemies.push(enemy);
+          this.enemiesInCurrentWave.push(enemy);
+          this.waveSpawnIndex++;
+          
+          // Verbleibende Dauer für nächsten Spawn (wird mit Speed skaliert)
+          // Overshoot beibehalten, damit kein Timing-Drift entsteht
+          this.remainingSpawnDelay += WAVE_CONFIG.SPAWN_INTERVAL;
+          this.waveSpawnSequenceIndex++;
+          const elapsedRealMs = Math.floor(performance.now() - this.waveStartRealMs);
+          const elapsedGameMs = Math.floor(this.levelElapsedGameMs - this.waveStartGameMs);
+          const nextRealMs = Math.floor(this.remainingSpawnDelay / this.gameSpeedMultiplier);
+          this.debugLog(`[SPAWN tRealWave=${elapsedRealMs}ms tGameWave=${elapsedGameMs}ms] ${ENEMY_TYPE_MAP[char]} spawned, next in game=${this.remainingSpawnDelay.toFixed(0)}ms real~=${nextRealMs}ms (Speed=${this.gameSpeedMultiplier}x)`);
+          return;
+        } else {
+          // Unbekanntes Zeichen überspringen
+          this.waveSpawnSequenceIndex++;
+          continue;
+        }
+      }
+
+      // Alle Gegner gespawned
+      this.debugLog(`   ✅ Wave-Spawning abgeschlossen`);
+      this.waveSpawnComplete = true;
+      this.waveSpawning = false;
+    }
+  }
+
+  updateWavePreview() {
+    if (!this.wavePreviewGraphics || !this.waveSpawnSequence) {
+      return;
+    }
+
+    this.wavePreviewGraphics.clear();
+
+    // Wave-Gegner visualisieren (unten links im HUD, auf gleicher Höhe wie Modus-Anzeiger)
+    const PREVIEW_START_X = 10;
+    const PREVIEW_START_Y = 70;
+    const CIRCLE_RADIUS = 5;
+    const CIRCLE_SPACING = 12;
+
+    // Farb-Map für Gegner-Typen
+    const ENEMY_TYPE_MAP = { n: 'normal', s: 'fast', a: 'armored' };
+    const colorMap = {
+      normal: 0x00ff00,   // Grün
+      fast: 0xff6600,     // Orange
+      armored: 0xffff00   // Gelb
+    };
+
+    let circleX = PREVIEW_START_X;
+    let circleY = PREVIEW_START_Y;
+    let enemyIndex = 0;
+
+    // Durch alle Zeichen durchgehen
+    for (let i = 0; i < this.waveSpawnSequence.length; i++) {
+      const char = this.waveSpawnSequence[i];
+
+      if (char === '.') {
+        // Pause-Zeichen überspringen
+        continue;
+      }
+
+      if (ENEMY_TYPE_MAP[char]) {
+        const enemyType = ENEMY_TYPE_MAP[char];
+        const baseColor = colorMap[enemyType];
+        
+        // Bestimme Status
+        const isDefeated = this.defeatedInWaveMap.has(enemyIndex);
+        const isNotSpawned = enemyIndex >= this.waveSpawnIndex;
+
+        let color = baseColor;
+        let alpha = 1;
+        
+        if (isDefeated) {
+          color = 0x666666;  // Grau für besiegt
+          alpha = 0.4;
+        } else if (isNotSpawned) {
+          color = 0xcccccc;  // Weiß für noch nicht gespawnt
+          alpha = 0.6;
+        }
+
+        // Kreis zeichnen
+        this.wavePreviewGraphics.fillStyle(color, alpha);
+        this.wavePreviewGraphics.fillCircle(circleX, circleY, CIRCLE_RADIUS);
+
+        // Outline
+        this.wavePreviewGraphics.lineStyle(1, color, alpha * 0.7);
+        this.wavePreviewGraphics.strokeCircle(circleX, circleY, CIRCLE_RADIUS);
+
+        // Wenn dieser Gegner gerade spawnet, Pfeil oben drüber
+        if (enemyIndex === this.waveSpawnIndex && !isDefeated && !isNotSpawned) {
+          this.wavePreviewGraphics.fillStyle(0xff0000, 1);
+          this.wavePreviewGraphics.fillTriangleShape([
+            { x: circleX, y: circleY - CIRCLE_RADIUS - 6 },
+            { x: circleX - 4, y: circleY - CIRCLE_RADIUS },
+            { x: circleX + 4, y: circleY - CIRCLE_RADIUS }
+          ]);
+        }
+
+        circleX += CIRCLE_SPACING;
+
+        // Auf Zeilenwechsel prüfen (max 12 pro Reihe)
+        if ((enemyIndex + 1) % 12 === 0) {
+          circleX = PREVIEW_START_X;
+          circleY += CIRCLE_SPACING;
+        }
+
+        enemyIndex++;
+      }
+    }
+  }
+
   update(time, deltaTime) {
     const scaledDeltaTime = deltaTime * this.gameSpeedMultiplier;
 
+    if (this.isPaused) {
+      if (this.towerPreviewGraphics) {
+        this.towerPreviewGraphics.clear();
+      }
+      return;
+    }
+
+    this.levelElapsedGameMs += scaledDeltaTime;
+
     // Cursor-Preview zeichnen und aktualisieren
     this.updateCursorPreview();
+    this.updateWaveSpawning(deltaTime);  // Mit deltaTime - skaliert mit Speed
+    this.updateWavePreview();
 
     // **HUD immer aktualisieren, egal welcher State**
     if (this.infoText) {
@@ -629,19 +856,22 @@ export default class GameScene extends Phaser.Scene {
           this.gold += actualReward;
           this.totalKills += 1;
           this.totalGoldEarned += actualReward;
-          console.log(`Kill! +${actualReward}g (Total: ${this.gold})`);
+          this.debugLog(`Kill! +${actualReward}g (Total: ${this.gold})`);
         }
 
         // Leben verlieren wenn Gegner durchkommt
         if (enemy.reachedEnd) {
           this.lives -= 1;
           this.totalLeaks += 1;
-          console.log(`Gegner durchgekommen! Leben: ${this.lives}`);
+          this.debugLog(`Gegner durchgekommen! Leben: ${this.lives}`);
           if (this.lives <= 0) {
             this.finalTotalScoreGold = this.accumulatedScoreGold + this.gold;
             this.gameState = 'lost';
             return;
           }
+        } else if (!enemy.isAlive && typeof enemy.waveSpawnIndex !== 'undefined') {
+          // Gegner wurde besiegt - in Wave-Preview tracken
+          this.defeatedInWaveMap.set(enemy.waveSpawnIndex, true);
         }
 
         enemy.destroy();
@@ -657,7 +887,7 @@ export default class GameScene extends Phaser.Scene {
 
     // Prüfe ob aktuelle Welle fertig ist (nur wenn Spawn abgeschlossen!)
     if (this.waveSpawnComplete && this.enemiesInCurrentWave.length === 0 && this.enemies.length === 0) {
-      console.log(`✅ Welle ${this.currentWaveIndex + 1} fertig!`);
+      this.debugLog(`✅ Welle ${this.currentWaveIndex + 1} fertig!`);
       // Alle Gegner der Welle besiegt
       if (this.currentWaveIndex >= this.currentLevel.totalWaves - 1) {
         const nextLevelKey = this.getNextLevelKey(this.selectedLevelKey);
@@ -733,7 +963,7 @@ export default class GameScene extends Phaser.Scene {
       tower.destroy();
     }
     
-    console.log(`Turm verkauft! +${refund}g (75% von ${tower.type.cost}g). Gold jetzt: ${this.gold}`);
+    this.debugLog(`Turm verkauft! +${refund}g (75% von ${tower.type.cost}g). Gold jetzt: ${this.gold}`);
   }
 
   tryPlaceTower(screenX, screenY) {
@@ -751,7 +981,7 @@ export default class GameScene extends Phaser.Scene {
 
     // 2. Kosten checken
     if (this.gold < this.selectedTowerType.cost) {
-      console.log('Nicht genug Gold!');
+      this.debugLog('Nicht genug Gold!');
       return;
     }
 
@@ -759,13 +989,13 @@ export default class GameScene extends Phaser.Scene {
 
     // 3. Pfad-Kollisions-Check (keine Türme auf Pfad)
     if (this.isPositionOnPath(gridX, absoluteY)) {
-      console.log('Kann nicht auf den Pfad setzen!');
+      this.debugLog('Kann nicht auf den Pfad setzen!');
       return;
     }
 
     // 4. Türm-Kollisions-Check (keine Türme übereinander)
     if (this.isTowerAtPosition(gridX, absoluteY)) {
-      console.log('Da steht schon ein Turm!');
+      this.debugLog('Da steht schon ein Turm!');
       return;
     }
 
@@ -781,7 +1011,7 @@ export default class GameScene extends Phaser.Scene {
     this.towerPlacementStats[towerKey] = (this.towerPlacementStats[towerKey] || 0) + 1;
     this.recordTowerPlacement(tower, towerKey, gridX, gridY, absoluteY);
 
-    console.log(`Turm platziert bei Grid (${gridX}, ${gridY})! Gold übrig: ${this.gold}`);
+    this.debugLog(`Turm platziert bei Grid (${gridX}, ${gridY})! Gold übrig: ${this.gold}`);
   }
 
   ensureLevelUsageBucket(levelKey) {
@@ -1060,8 +1290,8 @@ export default class GameScene extends Phaser.Scene {
       towerUsage: this.towerPlacementStats
     };
 
-    console.log('=== RUN SUMMARY ===');
-    console.log(summary);
+    this.debugLog('=== RUN SUMMARY ===');
+    this.debugLog(summary);
     console.table(this.towerPlacementStats);
   }
 
@@ -1171,13 +1401,13 @@ export default class GameScene extends Phaser.Scene {
     this.hasStartedFirstWave = true;
     const waveConfig = this.currentLevel.waves[this.currentWaveIndex];
     
-    console.log(`🌊 Welle ${this.currentWaveIndex + 1} startet:`, waveConfig);
-    console.log(`   (Index: ${this.currentWaveIndex}, Level: ${this.currentLevel.levelNumber}, Total Waves: ${this.currentLevel.totalWaves})`);
-    console.log(`   (Aktuelle Gegner im Spiel: ${this.enemies.length})`);
+    this.debugLog(`🌊 Welle ${this.currentWaveIndex + 1} startet:`, waveConfig);
+    this.debugLog(`   (Index: ${this.currentWaveIndex}, Level: ${this.currentLevel.levelNumber}, Total Waves: ${this.currentLevel.totalWaves})`);
+    this.debugLog(`   (Aktuelle Gegner im Spiel: ${this.enemies.length})`);
 
     // **WICHTIG**: Gegner-Leak prüfen - sollte leer sein
     if (this.enemies.length > 0) {
-      console.warn(`⚠️ GEGNER-LEAK! Es sind noch ${this.enemies.length} alte Gegner da!`);
+      this.debugWarn(`⚠️ GEGNER-LEAK! Es sind noch ${this.enemies.length} alte Gegner da!`);
     }
 
     // **ERROR CHECK**: Wave-Config leer?
@@ -1197,47 +1427,20 @@ export default class GameScene extends Phaser.Scene {
       return;
     }
 
-    console.log(`   → Wave-String: '${waveString}' (${totalInWave} Gegner)`);
+    this.debugLog(`   → Wave-String: '${waveString}' (${totalInWave} Gegner)`);
 
-    // Spawn-Flag zurücksetzen
+    // Spawn-Flag zurücksetzen für neues Zeit-basiertes System (mit deltaTime-Tracking)
+    this.debugLog(`   🔧 NEW SPAWN SYSTEM: Starting with deltaTime tracking`);
+    this.waveStartRealMs = performance.now();
+    this.waveStartGameMs = this.levelElapsedGameMs;
     this.waveSpawnComplete = false;
     this.enemiesInCurrentWave = [];
-
-    // Gegner rekursiv mit variablen Delays spawnen
-    const processNext = (index) => {
-      if (index >= spawnSequence.length) {
-        console.log(`   ✅ Alle ${totalInWave} Gegner gespawned`);
-        this.waveSpawnComplete = true;
-        this.waveSpawnTimer = null;
-        return;
-      }
-
-      const char = spawnSequence[index];
-
-      if (char === '.') {
-        // Extra-Pause: kein Spawn, nur warten
-        this.waveSpawnTimer = this.time.delayedCall(
-          WAVE_CONFIG.EXTRA_PAUSE_MS,
-          () => processNext(index + 1)
-        );
-      } else if (ENEMY_TYPE_MAP[char]) {
-        // Gegner nach Basis-Interval spawnen
-        this.waveSpawnTimer = this.time.delayedCall(
-          WAVE_CONFIG.SPAWN_INTERVAL,
-          () => {
-            const enemy = new Enemy(this, this.currentPath, { type: ENEMY_TYPE_MAP[char] });
-            this.enemies.push(enemy);
-            this.enemiesInCurrentWave.push(enemy);
-            processNext(index + 1);
-          }
-        );
-      } else {
-        // Unbekanntes Zeichen überspringen
-        processNext(index + 1);
-      }
-    };
-
-    processNext(0);
+    this.waveSpawnSequence = spawnSequence;
+    this.waveSpawnIndex = 0;
+    this.defeatedInWaveMap.clear();
+    this.waveSpawning = true;
+    this.remainingSpawnDelay = 0;  // Erste Gegner spawnen sofort
+    this.waveSpawnSequenceIndex = 0;
 
     this.waveTimerText.setText('Welle läuft...');
   }
@@ -1367,7 +1570,7 @@ export default class GameScene extends Phaser.Scene {
 
     btn.on('pointerover', () => btn.setStyle({ fill: '#ffff00' }));
     btn.on('pointerout', () => btn.setStyle({ fill: '#ffffff' }));
-    btn.on('pointerdown', () => this.scene.restart());
+    btn.on('pointerdown', () => this.scene.restart({ debugMode: this.debugMode }));
   }
 
   showWinScreen() {
@@ -1486,7 +1689,58 @@ export default class GameScene extends Phaser.Scene {
 
     btn.on('pointerover', () => btn.setStyle({ fill: '#ffff00' }));
     btn.on('pointerout', () => btn.setStyle({ fill: '#ffffff' }));
-    btn.on('pointerdown', () => this.scene.restart());
+    btn.on('pointerdown', () => this.scene.restart({ debugMode: this.debugMode }));
+  }
+
+  togglePause() {
+    if (this.isPaused) {
+      // Resume
+      this.isPaused = false;
+      if (this.pauseOverlay) {
+        this.pauseOverlay.destroy();
+        this.pauseOverlay = null;
+      }
+      if (this.pauseTextTitle) {
+        this.pauseTextTitle.destroy();
+        this.pauseTextTitle = null;
+      }
+      if (this.pauseTextHint) {
+        this.pauseTextHint.destroy();
+        this.pauseTextHint = null;
+      }
+      this.debugLog('▶️ Game resumed');
+    } else {
+      // Pause
+      this.isPaused = true;
+      this.showPauseScreen();
+      this.debugLog('⏸ Game paused');
+    }
+  }
+
+  showPauseScreen() {
+    const width = this.scale.width;
+    const height = this.scale.height;
+
+    // Vollständig opakes Overlay
+    this.pauseOverlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 1);
+    this.pauseOverlay.setOrigin(0.5);
+    this.pauseOverlay.setDepth(9999);
+    this.pauseOverlay.setInteractive();  // Klicks blockieren
+
+    // "PAUSED" Text
+    this.pauseTextTitle = this.add.text(width / 2, height / 2 - 60, 'PAUSED', {
+      fontSize: '48px',
+      fill: '#ffff00',
+      fontFamily: 'Arial',
+      fontStyle: 'bold'
+    }).setOrigin(0.5).setDepth(10000);
+
+    // Hinweis
+    this.pauseTextHint = this.add.text(width / 2, height / 2 + 60, 'Drücke P oder LEERTASTE zum Fortfahren', {
+      fontSize: '16px',
+      fill: '#cccccc',
+      fontFamily: 'Courier'
+    }).setOrigin(0.5).setDepth(10000);
   }
 
 }

@@ -46,6 +46,7 @@ export class Enemy {
     this.isAlive = true;
     this.reachedEnd = false;
     this.dotEffects = [];
+    this.debugId = (scene.nextEnemyDebugId = (scene.nextEnemyDebugId || 0) + 1);
   }
 
   update(deltaTime) {
@@ -119,32 +120,19 @@ export class Enemy {
     // DoT-Brand-Effekt: Gegner flackern orange/rot solange Burn aktiv ist
     const isBurning = this.dotEffects.length > 0;
 
+    const radius = this.width / 2;
+
     this.graphics.fillStyle(color, 1);
-    this.graphics.fillRect(
-      this.x - this.width / 2,
-      this.y - this.height / 2,
-      this.width,
-      this.height
-    );
+    this.graphics.fillCircle(this.x, this.y, radius);
 
     // Outline
     this.graphics.lineStyle(2, 0xffffff);
-    this.graphics.strokeRect(
-      this.x - this.width / 2,
-      this.y - this.height / 2,
-      this.width,
-      this.height
-    );
+    this.graphics.strokeCircle(this.x, this.y, radius);
 
     if (isBurning) {
       const flicker = Math.floor(this.scene.time.now / 120) % 2 === 0;
       this.graphics.lineStyle(2, 0xff2200, flicker ? 0.95 : 0.35);
-      this.graphics.strokeRect(
-        this.x - this.width / 2 - 1,
-        this.y - this.height / 2 - 1,
-        this.width + 2,
-        this.height + 2
-      );
+      this.graphics.strokeCircle(this.x, this.y, radius + 1);
     }
 
     // Health-Bar zeichnen (über dem Gegner)
@@ -191,10 +179,37 @@ export class Enemy {
     );
   }
 
-  takeDamage(amount) {
-    this.health -= amount;
+  takeDamage(amount, context = {}) {
+    if (!this.isAlive || this.reachedEnd) {
+      return;
+    }
+
+    const rawAmount = Number.isFinite(amount) ? amount : 0;
+    const appliedDamage = Math.max(0, Math.round(rawAmount));
+    if (appliedDamage <= 0) {
+      return;
+    }
+
+    const beforeHp = this.health;
+    this.health = Math.max(0, this.health - appliedDamage);
+    const afterHp = this.health;
+
+    const scene = this.scene;
+    const elapsedRealMs = Math.floor(performance.now() - (scene.waveStartRealMs || scene.levelStartRealMs || performance.now()));
+    const elapsedGameMs = Math.floor((scene.levelElapsedGameMs || 0) - (scene.waveStartGameMs || 0));
+    const hitX = Number.isFinite(context.hitX) ? context.hitX : this.x;
+    const hitY = Number.isFinite(context.hitY) ? context.hitY : this.y;
+    const source = context.source || 'unknown';
+
+    scene.debugLog(
+      `[COMBAT tRealWave=${elapsedRealMs}ms tGameWave=${elapsedGameMs}ms] HIT enemy#${this.debugId} ${this.type} dmg=${appliedDamage} hp=${beforeHp}->${afterHp} at=(${Math.round(hitX)},${Math.round(hitY)}) src=${source} speed=${scene.gameSpeedMultiplier}x`
+    );
+
     if (this.health <= 0) {
       this.isAlive = false;
+      scene.debugLog(
+        `[COMBAT tRealWave=${elapsedRealMs}ms tGameWave=${elapsedGameMs}ms] DEATH enemy#${this.debugId} ${this.type} at=(${Math.round(this.x)},${Math.round(this.y)}) src=${source} speed=${scene.gameSpeedMultiplier}x`
+      );
     }
   }
 
@@ -227,7 +242,11 @@ export class Enemy {
       effect.tickTimerMs -= deltaTime;
 
       while (effect.tickTimerMs <= 0 && effect.remainingMs > 0 && this.isAlive) {
-        this.takeDamage(effect.damagePerTick);
+        this.takeDamage(effect.damagePerTick, {
+          source: 'dot',
+          hitX: this.x,
+          hitY: this.y
+        });
         effect.tickTimerMs += effect.tickIntervalMs;
       }
 

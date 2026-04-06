@@ -298,6 +298,7 @@ export class Tower {
       buffedDamage,
       projectileSpeed,
       {
+        sourceTower: this,
         isAoE: this.isAoE,
         splashRadius: this.splashRadius,
         splashDamageMultiplier: this.splashDamageMultiplier,
@@ -334,7 +335,14 @@ export class Tower {
     this.flamethrowerDamageCarry = totalDamage - wholeDamage;
 
     if (wholeDamage > 0 && this.isValidTarget(target) && this.isEnemyInRange(target)) {
-      target.takeDamage(wholeDamage);
+      target.takeDamage(wholeDamage, {
+        source: 'flamethrower-beam',
+        hitX: target.x,
+        hitY: target.y,
+        towerX: this.x,
+        towerY: this.y,
+        towerName: this.name
+      });
     }
   }
 
@@ -360,7 +368,14 @@ export class Tower {
 
   fireChainLightning(primaryTarget, baseDamage) {
     const hitEnemies = [primaryTarget];
-    primaryTarget.takeDamage(baseDamage);
+    primaryTarget.takeDamage(baseDamage, {
+      source: 'tesla-primary',
+      hitX: primaryTarget.x,
+      hitY: primaryTarget.y,
+      towerX: this.x,
+      towerY: this.y,
+      towerName: this.name
+    });
 
     // Primärblitz nur zeigen/fortsetzen, wenn Primärziel den Treffer überlebt.
     if (!primaryTarget.isAlive) {
@@ -377,7 +392,16 @@ export class Tower {
         break;
       }
 
-      nextTarget.takeDamage(chainDamage);
+      nextTarget.takeDamage(chainDamage, {
+        source: `tesla-hop-${hop + 1}`,
+        hitX: nextTarget.x,
+        hitY: nextTarget.y,
+        fromX: currentSource.x,
+        fromY: currentSource.y,
+        towerX: this.x,
+        towerY: this.y,
+        towerName: this.name
+      });
       hitEnemies.push(nextTarget);
       // Kein Blitz auf bereits besiegte Ziele zeichnen
       if (currentSource.isAlive && nextTarget.isAlive) {

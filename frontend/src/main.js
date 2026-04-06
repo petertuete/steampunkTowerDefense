@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { IntroScene } from './scenes/IntroScene.js';
 import GameScene from './scenes/GameScene.js';
 
 /**
@@ -11,7 +12,7 @@ const config = {
   width: 1280,
   height: 960,
   parent: 'game-container',
-  scene: [GameScene],
+  scene: [IntroScene, GameScene],
   render: {
     pixelArt: true,
     antialias: false
@@ -26,6 +27,3 @@ const config = {
 };
 
 const game = new Phaser.Game(config);
-
-// Debug: Log das die Spielinstanz erstellt wurde
-console.log('Game instance created. Phaser version:', Phaser.VERSION);

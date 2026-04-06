@@ -28,6 +28,7 @@ export class Projectile {
     this.chainCount = options.chainCount || 0;
     this.chainRange = options.chainRange || 0;
     this.chainDamageMultiplier = options.chainDamageMultiplier || 0;
+    this.sourceTower = options.sourceTower || null;
 
     this.graphics = scene.make.graphics({ add: true });
     this.isActive = true;
@@ -77,7 +78,16 @@ export class Projectile {
       return;
     }
 
-    this.targetEnemy.takeDamage(this.damage);
+    this.targetEnemy.takeDamage(this.damage, {
+      source: 'projectile',
+      hitX: this.targetEnemy.x,
+      hitY: this.targetEnemy.y,
+      projectileX: this.x,
+      projectileY: this.y,
+      towerX: this.sourceTower?.x,
+      towerY: this.sourceTower?.y,
+      towerName: this.sourceTower?.name
+    });
   }
 
   applyAoEHit() {
@@ -98,7 +108,18 @@ export class Projectile {
           const appliedDamage = enemy === this.targetEnemy
             ? this.damage
             : Math.round(this.damage * this.splashDamageMultiplier);
-          enemy.takeDamage(appliedDamage);
+          enemy.takeDamage(appliedDamage, {
+            source: enemy === this.targetEnemy ? 'aoe-primary' : 'aoe-splash',
+            hitX: enemy.x,
+            hitY: enemy.y,
+            impactX,
+            impactY,
+            projectileX: this.x,
+            projectileY: this.y,
+            towerX: this.sourceTower?.x,
+            towerY: this.sourceTower?.y,
+            towerName: this.sourceTower?.name
+          });
         }
       }
     }
@@ -107,7 +128,16 @@ export class Projectile {
   }
 
   applyDoTHit() {
-    this.targetEnemy.takeDamage(this.damage);
+    this.targetEnemy.takeDamage(this.damage, {
+      source: 'dot-initial',
+      hitX: this.targetEnemy.x,
+      hitY: this.targetEnemy.y,
+      projectileX: this.x,
+      projectileY: this.y,
+      towerX: this.sourceTower?.x,
+      towerY: this.sourceTower?.y,
+      towerName: this.sourceTower?.name
+    });
 
     const dotDamagePerTick = Math.max(1, Math.round(this.damage * this.dotDamageMultiplier));
     if (this.targetEnemy.applyDoT) {
@@ -117,7 +147,16 @@ export class Projectile {
 
   applyChainHit() {
     const hitEnemies = [this.targetEnemy];
-    this.targetEnemy.takeDamage(this.damage);
+    this.targetEnemy.takeDamage(this.damage, {
+      source: 'chain-primary',
+      hitX: this.targetEnemy.x,
+      hitY: this.targetEnemy.y,
+      projectileX: this.x,
+      projectileY: this.y,
+      towerX: this.sourceTower?.x,
+      towerY: this.sourceTower?.y,
+      towerName: this.sourceTower?.name
+    });
 
     let currentSource = this.targetEnemy;
     let chainDamage = this.damage;
@@ -129,7 +168,16 @@ export class Projectile {
         break;
       }
 
-      nextTarget.takeDamage(chainDamage);
+      nextTarget.takeDamage(chainDamage, {
+        source: `chain-hop-${hop + 1}`,
+        hitX: nextTarget.x,
+        hitY: nextTarget.y,
+        fromX: currentSource.x,
+        fromY: currentSource.y,
+        towerX: this.sourceTower?.x,
+        towerY: this.sourceTower?.y,
+        towerName: this.sourceTower?.name
+      });
       hitEnemies.push(nextTarget);
       this.showChainEffect(currentSource, nextTarget);
       currentSource = nextTarget;
