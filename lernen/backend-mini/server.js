@@ -165,7 +165,7 @@ function parseAllowedOrigins() {
   const raw = process.env.ALLOWED_ORIGINS || "";
   const configured = raw
     .split(",")
-    .map((origin) => origin.trim())
+    .map((origin) => normalizeOrigin(origin.trim()))
     .filter(Boolean);
 
   if (configured.length > 0) {
@@ -173,7 +173,50 @@ function parseAllowedOrigins() {
   }
 
   // Sichere Defaults fuer lokale Entwicklung
-  return ["http://localhost:5173", "http://localhost:8000", "http://localhost:8080"];
+  return [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+    "http://localhost:8080",
+    "http://127.0.0.1:8080"
+  ];
+}
+
+function normalizeOrigin(origin) {
+  if (!origin) {
+    return null;
+  }
+
+  try {
+    return new URL(origin).origin;
+  } catch {
+    return null;
+  }
+}
+
+function isAllowedOrigin(origin) {
+  const normalizedOrigin = normalizeOrigin(origin);
+  if (!normalizedOrigin) {
+    return false;
+  }
+
+  if (allowedOrigins.includes(normalizedOrigin)) {
+    return true;
+  }
+
+  if (process.env.ALLOW_VERCEL_PREVIEWS === "true") {
+    try {
+      const { hostname, protocol } = new URL(normalizedOrigin);
+      if (protocol === "https:" && hostname.endsWith(".vercel.app")) {
+        return true;
+      }
+    } catch {
+      return false;
+    }
+  }
+
+  return false;
 }
 
 const allowedOrigins = parseAllowedOrigins();
@@ -190,7 +233,7 @@ app.use(cors({
       return callback(null, true);
     }
 
-    if (allowedOrigins.includes(origin)) {
+    if (isAllowedOrigin(origin)) {
       return callback(null, true);
     }
 
