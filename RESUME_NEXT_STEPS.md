@@ -23,15 +23,17 @@ Sprich mich im lockeren Du-Stil an, und ich nenne dich Copilot.
    - Flammenwerfer: rote Linie beim Schuss sichtbar, Nachbrennen bei Radius-Verlassen
    - Tesla: blauer Blitz-Flash beim Schuss
   - Endscreen: Name eingeben (3-10 Zeichen), Score speichern
-  - Top-10 Leaderboard wird geladen
+  - Top-20 Leaderboard wird geladen
+  - HUD: Live-Score waehrend des Spiels sichtbar
 
 ## Deployment-Status
 - Frontend ist auf Vercel live
 - Backend ist auf Render live
 - Supabase Speicherung funktioniert (game_runs + tower_usage_entries)
 - Git-Tag fuer Live-Stand vorhanden: v1.0.0-live
+- Neuer Checkpoint-Tag vorhanden: v1.1.0-scoring-live
 
-## Aktueller Funktionsstand (5. April 2026)
+## Aktueller Funktionsstand (7. April 2026)
 - 3-Level-Kampagne: Beginner / Advanced / Ultimate
 - Auto-Progression nach Level-Abschluss
 - Kumulatives Gold-Scoring (Gold aus vorherigen Levels = Sonderkonto)
@@ -53,12 +55,16 @@ Sprich mich im lockeren Du-Stil an, und ich nenne dich Copilot.
 - Level-2 Pfad als Zickzack umgesetzt
 - Level-2 Gegner droppen doppeltes Gold
 - Nameingabe und Score-Submit ans Backend abgeschlossen
-- Endscreen Top-10 Leaderboard abgeschlossen
+- Endscreen Top-20 Leaderboard abgeschlossen
 - Backend-Hardening aktiv (ALLOWED_ORIGINS, production-safe health)
+- Punkte-System aktiv (Kill/Wave/Clear/Gold + Perfection x1.5)
+- Endscreen 3-Panel-Layout aktiv (Run-Rechnung | Summary | Top20)
+- HUD-Live-Score aktiv
 
 ## Nächste offene Themen
 
 ### Prio 1 - Balancing weiter tunen
+- Punkte-System Feintuning auf Basis echter Runs (Gewichtung Kill/Wave/Clear/Gold/Perfection)
 - Level 1 Beginner: Flammenwerfer-Only sollte spätestens Welle 5-6 Probleme machen
 - Level 2 + 3: mit echten externen Testern evaluieren
 - Telemetrie-Daten nutzen: Kills/Leaks/Gold-Ausgaben im Konsolenlog

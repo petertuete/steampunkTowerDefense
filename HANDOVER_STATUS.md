@@ -1,6 +1,6 @@
 # Handover Status - BrowserGame
 
-Datum: 5. April 2026
+Datum: 7. April 2026
 
 ## Projektziel
 Steampunk Pixel-Art Tower Defense als spec-driven Vibe-Coding-Projekt, zuerst lokal kostenlos, spaeter onlinefaehig.
@@ -107,6 +107,27 @@ Wichtig:
 - Security-Hardening deployed und produktiv
 - GitHub + Tag v1.0.0-live vorhanden
 - Vercel + Render Deployment erfolgreich
+
+## Update Session 7. April 2026 (Scoring + UI)
+- Neues Punkte-System produktiv integriert:
+   - +10 pro Kill
+   - +50 pro leak-freie Welle
+   - +500 + 20 pro Leben bei Level-Clear
+   - +1 pro Endgold
+   - Perfection-Multiplikator x1.5 ohne Turmverkauf im Run
+- Score wird serverseitig als `score_points` gespeichert und Leaderboard danach sortiert
+- Leaderboard auf Top-20 umgestellt (API + Frontend)
+- Endscreen auf 3-Panel-Layout umgebaut:
+   - links: Punkte-Rechnung des konkreten Runs
+   - mitte: Game Over / Win Summary
+   - rechts: Top-20 Liste
+- HUD zeigt waehrend des Spiels den Live-Score (`Score: ... pts`)
+- CORS-Matching im Backend gehaertet (Origin-Normalisierung + localhost/127.0.0.1 defaults)
+- Online-Test (live) erfolgreich durchgefuehrt
+
+## Aktuelle Tags / Checkpoints
+- v1.0.0-live (frueherer Live-Release)
+- v1.1.0-scoring-live (Scoring-Overhaul + Top20 + Endscreen/HUD + CORS)
 
 ## Release-1 Scope Summary (aktuell verbindlich)
 In Scope (v1):
