@@ -100,9 +100,11 @@ Legende: ✅ erledigt | ❌ entfernt/entfallen | ⏳ offen
 68. ✅ P1: Changelog-Notizen je Sitzung gepflegt
 69. ⏳ P1: Regressionsbugs als Tests absichern
 70. ⏳ P2: Platzhalter-Assets durch finale Assets ersetzen
+71. ⏳ P1: Punkte-System Feintuning nach Tester-Runs (Gewichtung Kill/Wave/Clear/Gold/Perfection validieren)
 
 ## Empfohlene Reihenfolge naechste Session
 1. Balancing Level 2/3 mit externen Tester-Daten feinjustieren
-2. Optional Rate-Limiting fuer /api/v1/runs implementieren
-3. Supabase service-role key rotieren und in Render aktualisieren
-4. Grafik-/Asset-Phase planen
+2. Punkte-System Feintuning (Scoring-Gewichte auf Basis echter Runs justieren)
+3. Optional Rate-Limiting fuer /api/v1/runs implementieren
+4. Supabase service-role key rotieren und in Render aktualisieren
+5. Grafik-/Asset-Phase planen
