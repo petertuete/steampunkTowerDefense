@@ -2,6 +2,7 @@ create table if not exists public.game_runs (
   id bigint generated always as identity primary key,
   player_name text not null,
   result text not null check (result in ('won', 'lost')),
+  score_points integer not null default 0,
   score_gold integer not null,
   selected_level_key text,
   selected_level_number integer,
@@ -18,7 +19,11 @@ create table if not exists public.game_runs (
   submitted_at timestamptz not null default now()
 );
 
+alter table public.game_runs
+  add column if not exists score_points integer not null default 0;
+
 create index if not exists game_runs_score_idx on public.game_runs (score_gold desc, submitted_at desc);
+create index if not exists game_runs_score_points_idx on public.game_runs (score_points desc, submitted_at desc);
 
 create table if not exists public.tower_usage_entries (
   id bigint generated always as identity primary key,

@@ -337,6 +337,11 @@ app.post("/api/v1/runs", submitRunsLimiter, requireRunSubmitAuth, async (req, re
       return res.status(400).json({ error: "Ungueltiger playerName (3-10 Zeichen)." });
     }
 
+    const scorePointsInput = Number.isFinite(body.scorePoints) ? body.scorePoints : body.scoreGold;
+    if (!Number.isFinite(scorePointsInput) || scorePointsInput < 0) {
+      return res.status(400).json({ error: "scorePoints muss eine positive Zahl sein." });
+    }
+
     if (!Number.isFinite(body.scoreGold) || body.scoreGold < 0) {
       return res.status(400).json({ error: "scoreGold muss eine positive Zahl sein." });
     }
@@ -354,6 +359,7 @@ app.post("/api/v1/runs", submitRunsLimiter, requireRunSubmitAuth, async (req, re
     const runRow = {
       player_name: playerName,
       result: body.result === "won" ? "won" : "lost",
+      score_points: Math.round(scorePointsInput),
       score_gold: Math.round(body.scoreGold),
       selected_level_key: body.selectedLevelKey || null,
       selected_level_number: Number.isFinite(body.selectedLevelNumber) ? body.selectedLevelNumber : null,
@@ -373,7 +379,7 @@ app.post("/api/v1/runs", submitRunsLimiter, requireRunSubmitAuth, async (req, re
     const { data: insertedRun, error: runInsertError } = await supabase
       .from("game_runs")
       .insert(runRow)
-      .select("id, player_name, score_gold, result, submitted_at")
+      .select("id, player_name, score_points, score_gold, result, submitted_at")
       .single();
 
     if (runInsertError) {
@@ -418,8 +424,8 @@ app.get("/api/v1/scores", async (req, res) => {
     const limit = Math.min(100, Math.max(1, Number(req.query.limit || 20)));
     const { data, error } = await supabase
       .from("game_runs")
-      .select("id, player_name, score_gold, result, selected_level_number, wave_reached, submitted_at")
-      .order("score_gold", { ascending: false })
+      .select("id, player_name, score_points, score_gold, result, selected_level_number, wave_reached, submitted_at")
+      .order("score_points", { ascending: false })
       .order("submitted_at", { ascending: false })
       .limit(limit);
 

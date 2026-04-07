@@ -8,6 +8,14 @@ import { LEVELS, WAVE_CONFIG, DEFAULT_LEVEL } from '../config/waves.js';
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001').replace(/\/$/, '');
 const CLIENT_VERSION = import.meta.env.VITE_CLIENT_VERSION || 'dev-local';
 
+const SCORE_RULES = {
+  KILL_POINTS: 10,
+  NO_LEAK_WAVE_POINTS: 50,
+  LEVEL_CLEAR_BASE_POINTS: 500,
+  POINTS_PER_LIFE: 20,
+  PERFECTION_MULTIPLIER: 1.5
+};
+
 /**
  * GameScene - Hauptszene des Spiels
  * 
@@ -86,7 +94,13 @@ export default class GameScene extends Phaser.Scene {
     this.nextTowerPlacementId = carried ? carried.nextTowerPlacementId || 1 : 1;
     this.completedLevelKeys = carried ? carried.completedLevelKeys || [] : [];
     this.accumulatedScoreGold = carried ? carried.accumulatedScoreGold || 0 : 0;
-    this.finalTotalScoreGold = this.accumulatedScoreGold + this.gold;
+    this.finalTotalScoreGold = null;
+    this.accumulatedScorePoints = carried ? carried.accumulatedScorePoints || 0 : 0;
+    this.levelScorePoints = 0;
+    this.finalTotalScorePoints = null;
+    this.totalNoLeakWaves = carried ? carried.totalNoLeakWaves || 0 : 0;
+    this.waveLeakCountAtStart = this.totalLeaks;
+    this.runHasSoldTower = carried ? Boolean(carried.runHasSoldTower) : false;
     this.hasSubmittedRun = false;
     this.isSubmittingRun = false;
     this.scoreSubmitStatusText = null;
@@ -493,7 +507,25 @@ export default class GameScene extends Phaser.Scene {
   }
 
   getTotalScoreGold() {
-    return this.finalTotalScoreGold || (this.accumulatedScoreGold + this.gold);
+    return this.finalTotalScoreGold ?? (this.accumulatedScoreGold + this.gold);
+  }
+
+  getTotalScorePoints() {
+    return this.finalTotalScorePoints ?? (this.accumulatedScorePoints + this.levelScorePoints);
+  }
+
+  finalizeRunScorePoints({ includeCurrentGold = false, applyPerfection = false } = {}) {
+    let totalPoints = this.accumulatedScorePoints + this.levelScorePoints;
+    if (includeCurrentGold) {
+      totalPoints += this.gold;
+    }
+
+    if (applyPerfection && !this.runHasSoldTower) {
+      totalPoints = Math.round(totalPoints * SCORE_RULES.PERFECTION_MULTIPLIER);
+    }
+
+    this.finalTotalScorePoints = Math.max(0, Math.round(totalPoints));
+    return this.finalTotalScorePoints;
   }
 
   advanceToNextLevel(nextLevelKey) {
@@ -509,6 +541,9 @@ export default class GameScene extends Phaser.Scene {
       nextTowerPlacementId: this.nextTowerPlacementId,
       completedLevelKeys: [...this.completedLevelKeys, this.selectedLevelKey],
       accumulatedScoreGold: this.accumulatedScoreGold + this.gold,
+      accumulatedScorePoints: this.accumulatedScorePoints + this.levelScorePoints,
+      totalNoLeakWaves: this.totalNoLeakWaves,
+      runHasSoldTower: this.runHasSoldTower,
       debugMode: this.debugMode
     };
 
@@ -1207,6 +1242,7 @@ export default class GameScene extends Phaser.Scene {
           const actualReward = enemy.reward * rewardMultiplier;
           this.gold += actualReward;
           this.totalKills += 1;
+          this.levelScorePoints += SCORE_RULES.KILL_POINTS;
           this.totalGoldEarned += actualReward;
           this.debugLog(`Kill! +${actualReward}g (Total: ${this.gold})`);
         }
@@ -1218,6 +1254,7 @@ export default class GameScene extends Phaser.Scene {
           this.debugLog(`Gegner durchgekommen! Leben: ${this.lives}`);
           if (this.lives <= 0) {
             this.finalTotalScoreGold = this.accumulatedScoreGold + this.gold;
+            this.finalizeRunScorePoints({ includeCurrentGold: true, applyPerfection: true });
             this.gameState = 'lost';
             return;
           }
@@ -1240,8 +1277,18 @@ export default class GameScene extends Phaser.Scene {
     // Prüfe ob aktuelle Welle fertig ist (nur wenn Spawn abgeschlossen!)
     if (this.waveSpawnComplete && this.enemiesInCurrentWave.length === 0 && this.enemies.length === 0) {
       this.debugLog(`✅ Welle ${this.currentWaveIndex + 1} fertig!`);
+
+      const leakedInWave = this.totalLeaks > this.waveLeakCountAtStart;
+      if (!leakedInWave) {
+        this.levelScorePoints += SCORE_RULES.NO_LEAK_WAVE_POINTS;
+        this.totalNoLeakWaves += 1;
+      }
+
       // Alle Gegner der Welle besiegt
       if (this.currentWaveIndex >= this.currentLevel.totalWaves - 1) {
+        this.levelScorePoints += SCORE_RULES.LEVEL_CLEAR_BASE_POINTS + (SCORE_RULES.POINTS_PER_LIFE * this.lives);
+        this.levelScorePoints += this.gold;
+
         const nextLevelKey = this.getNextLevelKey(this.selectedLevelKey);
         if (nextLevelKey) {
           this.advanceToNextLevel(nextLevelKey);
@@ -1250,6 +1297,7 @@ export default class GameScene extends Phaser.Scene {
 
         // Letztes verfügbares Level geschafft
         this.finalTotalScoreGold = this.accumulatedScoreGold + this.gold;
+        this.finalizeRunScorePoints({ includeCurrentGold: false, applyPerfection: true });
         this.gameState = 'won';
         return;
       } else {
@@ -1305,6 +1353,7 @@ export default class GameScene extends Phaser.Scene {
     const refund = Math.floor(tower.type.cost * 0.75);
     this.gold += refund;
     this.totalGoldSpent -= tower.type.cost; // Vom Ausgaben-Tracker abziehen
+    this.runHasSoldTower = true;
     
     // Turm aus Array entfernen
     const index = this.towers.indexOf(tower);
@@ -1438,6 +1487,7 @@ export default class GameScene extends Phaser.Scene {
     return {
       playerName,
       result: this.gameState,
+      scorePoints: this.getTotalScorePoints(),
       scoreGold: this.getTotalScoreGold(),
       selectedLevelKey: this.selectedLevelKey,
       selectedLevelNumber: this.currentLevel?.levelNumber || null,
@@ -1535,9 +1585,9 @@ export default class GameScene extends Phaser.Scene {
   formatTopScoreLine(item, index) {
     const rank = String(index + 1).padStart(2, ' ');
     const name = String(item.player_name || 'Unknown').slice(0, 12).padEnd(12, ' ');
-    const score = String(item.score_gold ?? 0).padStart(5, ' ');
+    const score = String(item.score_points ?? 0).padStart(5, ' ');
     const level = item.selected_level_number ? `L${item.selected_level_number}` : 'L?';
-    return `${rank}. ${name} ${score}g ${level}`;
+    return `${rank}. ${name} ${score}pts ${level}`;
   }
 
   async fetchAndShowTopScores() {
@@ -1565,12 +1615,20 @@ export default class GameScene extends Phaser.Scene {
       this.setTopScoresStatus(lines.join('\n'), '#dde6ff');
     } catch (error) {
       console.error('Top10 fetch failed:', error);
-      this.setTopScoresStatus(`Fehler: ${error.message}`, '#ff6666');
+      const message = error?.message === 'Failed to fetch' || error?.message === 'Load failed'
+        ? 'API nicht erreichbar oder CORS blockiert.'
+        : error.message;
+      this.setTopScoresStatus(`Fehler: ${message}`, '#ff6666');
     }
   }
 
   async requestRunAuthToken() {
-    const response = await fetch(`${API_BASE_URL}/api/v1/auth/challenge`);
+    let response;
+    try {
+      response = await fetch(`${API_BASE_URL}/api/v1/auth/challenge`);
+    } catch (error) {
+      throw new Error('API nicht erreichbar oder CORS blockiert. Pruefe Backend-URL und ALLOWED_ORIGINS.');
+    }
     const data = await response.json().catch(() => ({}));
 
     if (!response.ok) {
@@ -1644,7 +1702,10 @@ export default class GameScene extends Phaser.Scene {
       await this.fetchAndShowTopScores();
     } catch (error) {
       console.error('Score submit failed:', error);
-      this.setScoreSubmitStatus(`Fehler: ${error.message}`, '#ff6666');
+      const message = error?.message === 'Failed to fetch' || error?.message === 'Load failed'
+        ? 'API nicht erreichbar oder CORS blockiert.'
+        : error.message;
+      this.setScoreSubmitStatus(`Fehler: ${message}`, '#ff6666');
     } finally {
       this.isSubmittingRun = false;
     }
@@ -1662,10 +1723,13 @@ export default class GameScene extends Phaser.Scene {
       waveReached: `${this.currentWaveIndex + 1}/${this.currentLevel.totalWaves}`,
       kills: this.totalKills,
       leaks: this.totalLeaks,
+      noLeakWaves: this.totalNoLeakWaves,
       goldEarned: this.totalGoldEarned,
       goldSpent: this.totalGoldSpent,
       goldRemaining: this.gold,
       totalScoreGold: this.getTotalScoreGold(),
+      totalScorePoints: this.getTotalScorePoints(),
+      perfectionBonusActive: !this.runHasSoldTower,
       towersPlaced: this.towers.length,
       towerUsage: this.towerPlacementStats
     };
@@ -1821,6 +1885,7 @@ export default class GameScene extends Phaser.Scene {
     this.waveSpawning = true;
     this.remainingSpawnDelay = 0;  // Erste Gegner spawnen sofort
     this.waveSpawnSequenceIndex = 0;
+    this.waveLeakCountAtStart = this.totalLeaks;
 
     this.waveTimerText.setText('Welle läuft...');
   }
@@ -1828,6 +1893,10 @@ export default class GameScene extends Phaser.Scene {
   startNextWave() {
     this.currentWaveIndex++;
     if (this.currentWaveIndex >= this.currentLevel.totalWaves) {
+      this.levelScorePoints += SCORE_RULES.LEVEL_CLEAR_BASE_POINTS + (SCORE_RULES.POINTS_PER_LIFE * this.lives);
+      this.levelScorePoints += this.gold;
+      this.finalTotalScoreGold = this.accumulatedScoreGold + this.gold;
+      this.finalizeRunScorePoints({ includeCurrentGold: false, applyPerfection: true });
       this.gameState = 'won';
       return;
     }
@@ -1869,7 +1938,7 @@ export default class GameScene extends Phaser.Scene {
       fontFamily: 'Courier'
     }).setOrigin(0.5);
 
-    this.add.text(cx, cy + 32, `Gesamt-Score: ${this.getTotalScoreGold()}g`, {
+    this.add.text(cx, cy + 32, `Gesamt-Score: ${this.getTotalScorePoints()} pts`, {
       fontSize: '14px',
       fill: '#ffd966',
       fontFamily: 'Courier',
@@ -1982,13 +2051,13 @@ export default class GameScene extends Phaser.Scene {
       fontFamily: 'Courier'
     }).setOrigin(0.5);
 
-    this.add.text(cx, cy + 15, `Restgold: ${this.gold} (dein Score!)`, {
+    this.add.text(cx, cy + 15, `Restgold: ${this.gold}`, {
       fontSize: '16px',
       fill: '#ffff00',
       fontFamily: 'Courier'
     }).setOrigin(0.5);
 
-    this.add.text(cx, cy + 32, `Gesamt-Score: ${this.getTotalScoreGold()}g`, {
+    this.add.text(cx, cy + 32, `Gesamt-Score: ${this.getTotalScorePoints()} pts`, {
       fontSize: '14px',
       fill: '#ffff66',
       fontFamily: 'Courier',
