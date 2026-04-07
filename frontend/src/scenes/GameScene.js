@@ -98,6 +98,17 @@ export default class GameScene extends Phaser.Scene {
     this.accumulatedScorePoints = carried ? carried.accumulatedScorePoints || 0 : 0;
     this.levelScorePoints = 0;
     this.finalTotalScorePoints = null;
+    this.scoreBreakdown = carried ? {
+      killPoints: carried.scoreBreakdown?.killPoints || 0,
+      noLeakWavePoints: carried.scoreBreakdown?.noLeakWavePoints || 0,
+      levelClearPoints: carried.scoreBreakdown?.levelClearPoints || 0,
+      goldPoints: carried.scoreBreakdown?.goldPoints || 0
+    } : {
+      killPoints: 0,
+      noLeakWavePoints: 0,
+      levelClearPoints: 0,
+      goldPoints: 0
+    };
     this.totalNoLeakWaves = carried ? carried.totalNoLeakWaves || 0 : 0;
     this.waveLeakCountAtStart = this.totalLeaks;
     this.runHasSoldTower = carried ? Boolean(carried.runHasSoldTower) : false;
@@ -244,6 +255,13 @@ export default class GameScene extends Phaser.Scene {
     this.goldText = this.add.text(300, 8, `Gold: ${this.gold}`, {
       fontSize: '14px',
       fill: '#ffff00',
+      fontFamily: 'Courier',
+      fontStyle: 'bold'
+    });
+
+    this.scoreText = this.add.text(300, 24, `Score: ${this.getTotalScorePoints()} pts`, {
+      fontSize: '13px',
+      fill: '#ffd966',
       fontFamily: 'Courier',
       fontStyle: 'bold'
     });
@@ -542,6 +560,7 @@ export default class GameScene extends Phaser.Scene {
       completedLevelKeys: [...this.completedLevelKeys, this.selectedLevelKey],
       accumulatedScoreGold: this.accumulatedScoreGold + this.gold,
       accumulatedScorePoints: this.accumulatedScorePoints + this.levelScorePoints,
+      scoreBreakdown: { ...this.scoreBreakdown },
       totalNoLeakWaves: this.totalNoLeakWaves,
       runHasSoldTower: this.runHasSoldTower,
       debugMode: this.debugMode
@@ -1178,6 +1197,9 @@ export default class GameScene extends Phaser.Scene {
     if (this.goldText) {
       this.goldText.setText(`Gold: ${this.gold}`);
     }
+    if (this.scoreText) {
+      this.scoreText.setText(`Score: ${this.getTotalScorePoints()} pts`);
+    }
     if (this.towerText) {
       this.towerText.setText(`Türme: ${this.towers.length} | ${this.selectedTowerType.name} (${this.selectedTowerType.cost}g)`);
     }
@@ -1243,6 +1265,7 @@ export default class GameScene extends Phaser.Scene {
           this.gold += actualReward;
           this.totalKills += 1;
           this.levelScorePoints += SCORE_RULES.KILL_POINTS;
+          this.scoreBreakdown.killPoints += SCORE_RULES.KILL_POINTS;
           this.totalGoldEarned += actualReward;
           this.debugLog(`Kill! +${actualReward}g (Total: ${this.gold})`);
         }
@@ -1254,6 +1277,7 @@ export default class GameScene extends Phaser.Scene {
           this.debugLog(`Gegner durchgekommen! Leben: ${this.lives}`);
           if (this.lives <= 0) {
             this.finalTotalScoreGold = this.accumulatedScoreGold + this.gold;
+            this.scoreBreakdown.goldPoints += this.gold;
             this.finalizeRunScorePoints({ includeCurrentGold: true, applyPerfection: true });
             this.gameState = 'lost';
             return;
@@ -1281,13 +1305,17 @@ export default class GameScene extends Phaser.Scene {
       const leakedInWave = this.totalLeaks > this.waveLeakCountAtStart;
       if (!leakedInWave) {
         this.levelScorePoints += SCORE_RULES.NO_LEAK_WAVE_POINTS;
+        this.scoreBreakdown.noLeakWavePoints += SCORE_RULES.NO_LEAK_WAVE_POINTS;
         this.totalNoLeakWaves += 1;
       }
 
       // Alle Gegner der Welle besiegt
       if (this.currentWaveIndex >= this.currentLevel.totalWaves - 1) {
-        this.levelScorePoints += SCORE_RULES.LEVEL_CLEAR_BASE_POINTS + (SCORE_RULES.POINTS_PER_LIFE * this.lives);
+        const clearPoints = SCORE_RULES.LEVEL_CLEAR_BASE_POINTS + (SCORE_RULES.POINTS_PER_LIFE * this.lives);
+        this.levelScorePoints += clearPoints;
+        this.scoreBreakdown.levelClearPoints += clearPoints;
         this.levelScorePoints += this.gold;
+        this.scoreBreakdown.goldPoints += this.gold;
 
         const nextLevelKey = this.getNextLevelKey(this.selectedLevelKey);
         if (nextLevelKey) {
@@ -1584,10 +1612,10 @@ export default class GameScene extends Phaser.Scene {
 
   formatTopScoreLine(item, index) {
     const rank = String(index + 1).padStart(2, ' ');
-    const name = String(item.player_name || 'Unknown').slice(0, 12).padEnd(12, ' ');
-    const score = String(item.score_points ?? 0).padStart(5, ' ');
+    const name = String(item.player_name || 'Unknown').slice(0, 9);
+    const score = String(item.score_points ?? 0);
     const level = item.selected_level_number ? `L${item.selected_level_number}` : 'L?';
-    return `${rank}. ${name} ${score}pts ${level}`;
+    return `${rank}. ${name} ${score}p ${level}`;
   }
 
   async fetchAndShowTopScores() {
@@ -1595,19 +1623,19 @@ export default class GameScene extends Phaser.Scene {
       return;
     }
 
-    this.setTopScoresStatus('Top 10 werden geladen ...', '#ffff88');
+    this.setTopScoresStatus('Top 20 werden geladen ...', '#ffff88');
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/v1/scores?limit=10`);
+      const response = await fetch(`${API_BASE_URL}/api/v1/scores?limit=20`);
       const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        throw new Error(data.error || 'Top 10 konnten nicht geladen werden.');
+        throw new Error(data.error || 'Top 20 konnten nicht geladen werden.');
       }
 
       const items = Array.isArray(data.items) ? data.items : [];
       if (!items.length) {
-        this.setTopScoresStatus('Noch keine Einträge in der Top 10.', '#cccccc');
+        this.setTopScoresStatus('Noch keine Einträge in der Top 20.', '#cccccc');
         return;
       }
 
@@ -1758,7 +1786,7 @@ export default class GameScene extends Phaser.Scene {
 
     for (const part of parts) {
       const candidate = currentLine === 'Nutzung: ' ? `${currentLine}${part}` : `${currentLine}, ${part}`;
-      if (candidate.length > 52 && currentLine !== 'Nutzung: ') {
+      if (candidate.length > 40 && currentLine !== 'Nutzung: ') {
         lines.push(currentLine);
         currentLine = part;
       } else {
@@ -1893,8 +1921,11 @@ export default class GameScene extends Phaser.Scene {
   startNextWave() {
     this.currentWaveIndex++;
     if (this.currentWaveIndex >= this.currentLevel.totalWaves) {
-      this.levelScorePoints += SCORE_RULES.LEVEL_CLEAR_BASE_POINTS + (SCORE_RULES.POINTS_PER_LIFE * this.lives);
+      const clearPoints = SCORE_RULES.LEVEL_CLEAR_BASE_POINTS + (SCORE_RULES.POINTS_PER_LIFE * this.lives);
+      this.levelScorePoints += clearPoints;
+      this.scoreBreakdown.levelClearPoints += clearPoints;
       this.levelScorePoints += this.gold;
+      this.scoreBreakdown.goldPoints += this.gold;
       this.finalTotalScoreGold = this.accumulatedScoreGold + this.gold;
       this.finalizeRunScorePoints({ includeCurrentGold: false, applyPerfection: true });
       this.gameState = 'won';
@@ -1906,64 +1937,115 @@ export default class GameScene extends Phaser.Scene {
   showGameOverScreen() {
     const cx = this.scale.width / 2;
     const cy = this.scale.height / 2;
+    const uiBaseDepth = 12000;
+    const panelWidth = 300;
+    const panelHeight = 340;
+    const panelTop = cy - panelHeight / 2;
+    const panelGap = 18;
+    const centerPanelLeft = cx - panelWidth / 2;
+    const infoPanelLeft = centerPanelLeft - panelWidth - panelGap;
+    const topPanelLeft = centerPanelLeft + panelWidth + panelGap;
 
     // Dunkles Overlay
     const overlay = this.add.graphics();
     overlay.fillStyle(0x000000, 0.75);
     overlay.fillRect(0, 0, this.scale.width, this.scale.height);
+    overlay.setDepth(uiBaseDepth);
 
     // Panel
     const panel = this.add.graphics();
     panel.fillStyle(0x330000, 1);
     panel.lineStyle(3, 0xff2222, 1);
-    panel.fillRect(cx - 220, cy - 165, 440, 330);
-    panel.strokeRect(cx - 220, cy - 165, 440, 330);
+    panel.fillRect(centerPanelLeft, panelTop, panelWidth, panelHeight);
+    panel.strokeRect(centerPanelLeft, panelTop, panelWidth, panelHeight);
+    panel.setDepth(uiBaseDepth + 1);
+
+    const infoPanel = this.add.graphics();
+    infoPanel.fillStyle(0x1a2332, 0.95);
+    infoPanel.lineStyle(2, 0x5577aa, 1);
+    infoPanel.fillRect(infoPanelLeft, panelTop, panelWidth, panelHeight);
+    infoPanel.strokeRect(infoPanelLeft, panelTop, panelWidth, panelHeight);
+    infoPanel.setDepth(uiBaseDepth + 1);
+
+    this.add.text(infoPanelLeft + 150, cy - 152, 'PUNKTE-RECHNUNG', {
+      fontSize: '13px',
+      fill: '#a8c7ff',
+      fontFamily: 'Courier',
+      fontStyle: 'bold'
+    }).setOrigin(0.5).setDepth(uiBaseDepth + 2);
+
+    const breakdownBase =
+      this.scoreBreakdown.killPoints +
+      this.scoreBreakdown.noLeakWavePoints +
+      this.scoreBreakdown.levelClearPoints +
+      this.scoreBreakdown.goldPoints;
+    const multiplier = this.runHasSoldTower ? 1.0 : SCORE_RULES.PERFECTION_MULTIPLIER;
+
+    this.add.text(
+      infoPanelLeft + 14,
+      cy - 130,
+      'Dieser Run:\n' +
+      `Kills: ${this.totalKills} => ${this.scoreBreakdown.killPoints}p\n` +
+      `NoLeak-Wellen: ${this.totalNoLeakWaves} => ${this.scoreBreakdown.noLeakWavePoints}p\n` +
+      `Clear-Bonus: ${this.scoreBreakdown.levelClearPoints}p\n` +
+      `Gold-Bonus: ${this.scoreBreakdown.goldPoints}p\n\n` +
+      `Basis: ${breakdownBase}p\n` +
+      `Perfection: x${multiplier.toFixed(1)}\n` +
+      `Final: ${this.getTotalScorePoints()} pts`,
+      {
+        fontSize: '12px',
+        fill: '#d4e2f5',
+        fontFamily: 'Courier',
+        lineSpacing: 3,
+        wordWrap: { width: 272, useAdvancedWrap: true }
+      }
+    ).setOrigin(0, 0).setDepth(uiBaseDepth + 2);
 
     this.add.text(cx, cy - 70, 'GAME OVER', {
       fontSize: '36px',
       fill: '#ff2222',
       fontFamily: 'Courier',
       fontStyle: 'bold'
-    }).setOrigin(0.5);
+    }).setOrigin(0.5).setDepth(uiBaseDepth + 2);
 
     this.add.text(cx, cy - 20, `Erreicht: Welle ${this.currentWaveIndex + 1}/${this.currentLevel.totalWaves}`, {
       fontSize: '16px',
       fill: '#ffaaaa',
       fontFamily: 'Courier'
-    }).setOrigin(0.5);
+    }).setOrigin(0.5).setDepth(uiBaseDepth + 2);
 
     this.add.text(cx, cy + 15, `Gold übrig: ${this.gold}`, {
       fontSize: '16px',
       fill: '#ffff00',
       fontFamily: 'Courier'
-    }).setOrigin(0.5);
+    }).setOrigin(0.5).setDepth(uiBaseDepth + 2);
 
     this.add.text(cx, cy + 32, `Gesamt-Score: ${this.getTotalScorePoints()} pts`, {
       fontSize: '14px',
       fill: '#ffd966',
       fontFamily: 'Courier',
       fontStyle: 'bold'
-    }).setOrigin(0.5);
+    }).setOrigin(0.5).setDepth(uiBaseDepth + 2);
 
-    this.add.text(cx, cy + 50, `Kills: ${this.totalKills} | Leaks: ${this.totalLeaks} | Ausgaben: ${this.totalGoldSpent}g`, {
-      fontSize: '13px',
+    this.add.text(cx, cy + 50, `Kills:${this.totalKills} | Leaks:${this.totalLeaks} | Ausgaben:${this.totalGoldSpent}g`, {
+      fontSize: '11px',
       fill: '#ffccaa',
       fontFamily: 'Courier'
-    }).setOrigin(0.5);
+    }).setOrigin(0.5).setDepth(uiBaseDepth + 2);
 
     const usageLines = this.buildTowerUsageLines();
     this.add.text(cx, cy + 72, usageLines[0], {
       fontSize: '12px',
       fill: '#ffd9c8',
       fontFamily: 'Courier'
-    }).setOrigin(0.5);
+    }).setOrigin(0.5).setDepth(uiBaseDepth + 2);
 
     if (usageLines[1]) {
       this.add.text(cx, cy + 90, usageLines[1], {
         fontSize: '12px',
         fill: '#ffd9c8',
         fontFamily: 'Courier'
-      }).setOrigin(0.5);
+      }).setOrigin(0.5).setDepth(uiBaseDepth + 2);
     }
 
     this.scoreSubmitButton = this.add.text(cx, cy + 116, '[ SCORE SPEICHERN ]', {
@@ -1973,13 +2055,13 @@ export default class GameScene extends Phaser.Scene {
       fontStyle: 'bold',
       backgroundColor: '#444400',
       padding: { x: 12, y: 7 }
-    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true }).setDepth(uiBaseDepth + 3);
 
-    this.scoreSubmitStatusText = this.add.text(cx, cy + 138, 'Noch nicht gespeichert', {
+    this.scoreSubmitStatusText = this.add.text(cx, cy + 142, 'Noch nicht gespeichert', {
       fontSize: '12px',
       fill: '#dddddd',
       fontFamily: 'Courier'
-    }).setOrigin(0.5);
+    }).setOrigin(0.5).setDepth(uiBaseDepth + 3);
 
     this.scoreSubmitButton.on('pointerover', () => this.scoreSubmitButton.setStyle({ fill: '#ffff00' }));
     this.scoreSubmitButton.on('pointerout', () => this.scoreSubmitButton.setStyle({ fill: '#ffffff' }));
@@ -1990,32 +2072,33 @@ export default class GameScene extends Phaser.Scene {
     const topPanel = this.add.graphics();
     topPanel.fillStyle(0x101722, 0.95);
     topPanel.lineStyle(2, 0x5577aa, 1);
-    topPanel.fillRect(cx + 140, cy - 170, 300, 340);
-    topPanel.strokeRect(cx + 140, cy - 170, 300, 340);
+    topPanel.fillRect(topPanelLeft, cy - 170, 300, 340);
+    topPanel.strokeRect(topPanelLeft, cy - 170, 300, 340);
+    topPanel.setDepth(uiBaseDepth + 1);
 
-    this.topScoresTitleText = this.add.text(cx + 290, cy - 152, 'TOP 10 (nach Upload)', {
+    this.topScoresTitleText = this.add.text(topPanelLeft + 150, cy - 152, 'TOP 20 (nach Upload)', {
       fontSize: '13px',
       fill: '#a8c7ff',
       fontFamily: 'Courier',
       fontStyle: 'bold'
-    }).setOrigin(0.5);
+    }).setOrigin(0.5).setDepth(uiBaseDepth + 2);
 
-    this.topScoresText = this.add.text(cx + 154, cy - 130, 'Score speichern, dann wird die Top 10 geladen.', {
-      fontSize: '12px',
+    this.topScoresText = this.add.text(topPanelLeft + 14, cy - 130, 'Score speichern,\ndann wird die Top 20 geladen.', {
+      fontSize: '10px',
       fill: '#99aabb',
       fontFamily: 'Courier',
-      lineSpacing: 3
-    }).setOrigin(0, 0);
+      lineSpacing: 1
+    }).setOrigin(0, 0).setDepth(uiBaseDepth + 2);
 
     // Neustart-Button
-    const btn = this.add.text(cx, cy + 160, '[ NOCHMAL ]', {
+    const btn = this.add.text(cx, cy + 182, '[ NOCHMAL ]', {
       fontSize: '20px',
       fill: '#ffffff',
       fontFamily: 'Courier',
       fontStyle: 'bold',
       backgroundColor: '#aa0000',
       padding: { x: 16, y: 8 }
-    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true }).setDepth(uiBaseDepth + 3);
 
     btn.on('pointerover', () => btn.setStyle({ fill: '#ffff00' }));
     btn.on('pointerout', () => btn.setStyle({ fill: '#ffffff' }));
@@ -2025,64 +2108,115 @@ export default class GameScene extends Phaser.Scene {
   showWinScreen() {
     const cx = this.scale.width / 2;
     const cy = this.scale.height / 2;
+    const uiBaseDepth = 12000;
+    const panelWidth = 300;
+    const panelHeight = 340;
+    const panelTop = cy - panelHeight / 2;
+    const panelGap = 18;
+    const centerPanelLeft = cx - panelWidth / 2;
+    const infoPanelLeft = centerPanelLeft - panelWidth - panelGap;
+    const topPanelLeft = centerPanelLeft + panelWidth + panelGap;
 
     // Dunkles Overlay
     const overlay = this.add.graphics();
     overlay.fillStyle(0x000000, 0.75);
     overlay.fillRect(0, 0, this.scale.width, this.scale.height);
+    overlay.setDepth(uiBaseDepth);
 
     // Panel
     const panel = this.add.graphics();
     panel.fillStyle(0x003300, 1);
     panel.lineStyle(3, 0x22ff22, 1);
-    panel.fillRect(cx - 220, cy - 165, 440, 330);
-    panel.strokeRect(cx - 220, cy - 165, 440, 330);
+    panel.fillRect(centerPanelLeft, panelTop, panelWidth, panelHeight);
+    panel.strokeRect(centerPanelLeft, panelTop, panelWidth, panelHeight);
+    panel.setDepth(uiBaseDepth + 1);
+
+    const infoPanel = this.add.graphics();
+    infoPanel.fillStyle(0x1a2332, 0.95);
+    infoPanel.lineStyle(2, 0x5577aa, 1);
+    infoPanel.fillRect(infoPanelLeft, panelTop, panelWidth, panelHeight);
+    infoPanel.strokeRect(infoPanelLeft, panelTop, panelWidth, panelHeight);
+    infoPanel.setDepth(uiBaseDepth + 1);
+
+    this.add.text(infoPanelLeft + 150, cy - 152, 'PUNKTE-RECHNUNG', {
+      fontSize: '13px',
+      fill: '#a8c7ff',
+      fontFamily: 'Courier',
+      fontStyle: 'bold'
+    }).setOrigin(0.5).setDepth(uiBaseDepth + 2);
+
+    const breakdownBase =
+      this.scoreBreakdown.killPoints +
+      this.scoreBreakdown.noLeakWavePoints +
+      this.scoreBreakdown.levelClearPoints +
+      this.scoreBreakdown.goldPoints;
+    const multiplier = this.runHasSoldTower ? 1.0 : SCORE_RULES.PERFECTION_MULTIPLIER;
+
+    this.add.text(
+      infoPanelLeft + 14,
+      cy - 130,
+      'Dieser Run:\n' +
+      `Kills: ${this.totalKills} => ${this.scoreBreakdown.killPoints}p\n` +
+      `NoLeak-Wellen: ${this.totalNoLeakWaves} => ${this.scoreBreakdown.noLeakWavePoints}p\n` +
+      `Clear-Bonus: ${this.scoreBreakdown.levelClearPoints}p\n` +
+      `Gold-Bonus: ${this.scoreBreakdown.goldPoints}p\n\n` +
+      `Basis: ${breakdownBase}p\n` +
+      `Perfection: x${multiplier.toFixed(1)}\n` +
+      `Final: ${this.getTotalScorePoints()} pts`,
+      {
+        fontSize: '12px',
+        fill: '#d4e2f5',
+        fontFamily: 'Courier',
+        lineSpacing: 3,
+        wordWrap: { width: 272, useAdvancedWrap: true }
+      }
+    ).setOrigin(0, 0).setDepth(uiBaseDepth + 2);
 
     this.add.text(cx, cy - 70, 'GEWONNEN! 🎉', {
       fontSize: '32px',
       fill: '#22ff22',
       fontFamily: 'Courier',
       fontStyle: 'bold'
-    }).setOrigin(0.5);
+    }).setOrigin(0.5).setDepth(uiBaseDepth + 2);
 
     this.add.text(cx, cy - 20, 'Alle Wellen besiegt!', {
       fontSize: '16px',
       fill: '#aaffaa',
       fontFamily: 'Courier'
-    }).setOrigin(0.5);
+    }).setOrigin(0.5).setDepth(uiBaseDepth + 2);
 
     this.add.text(cx, cy + 15, `Restgold: ${this.gold}`, {
       fontSize: '16px',
       fill: '#ffff00',
       fontFamily: 'Courier'
-    }).setOrigin(0.5);
+    }).setOrigin(0.5).setDepth(uiBaseDepth + 2);
 
     this.add.text(cx, cy + 32, `Gesamt-Score: ${this.getTotalScorePoints()} pts`, {
       fontSize: '14px',
       fill: '#ffff66',
       fontFamily: 'Courier',
       fontStyle: 'bold'
-    }).setOrigin(0.5);
+    }).setOrigin(0.5).setDepth(uiBaseDepth + 2);
 
-    this.add.text(cx, cy + 50, `Kills: ${this.totalKills} | Leaks: ${this.totalLeaks} | Ausgaben: ${this.totalGoldSpent}g`, {
-      fontSize: '13px',
+    this.add.text(cx, cy + 50, `Kills:${this.totalKills} | Leaks:${this.totalLeaks} | Ausgaben:${this.totalGoldSpent}g`, {
+      fontSize: '11px',
       fill: '#ccffcc',
       fontFamily: 'Courier'
-    }).setOrigin(0.5);
+    }).setOrigin(0.5).setDepth(uiBaseDepth + 2);
 
     const usageLines = this.buildTowerUsageLines();
     this.add.text(cx, cy + 72, usageLines[0], {
       fontSize: '12px',
       fill: '#d8ffd8',
       fontFamily: 'Courier'
-    }).setOrigin(0.5);
+    }).setOrigin(0.5).setDepth(uiBaseDepth + 2);
 
     if (usageLines[1]) {
       this.add.text(cx, cy + 90, usageLines[1], {
         fontSize: '12px',
         fill: '#d8ffd8',
         fontFamily: 'Courier'
-      }).setOrigin(0.5);
+      }).setOrigin(0.5).setDepth(uiBaseDepth + 2);
     }
 
     this.scoreSubmitButton = this.add.text(cx, cy + 116, '[ SCORE SPEICHERN ]', {
@@ -2092,13 +2226,13 @@ export default class GameScene extends Phaser.Scene {
       fontStyle: 'bold',
       backgroundColor: '#444400',
       padding: { x: 12, y: 7 }
-    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true }).setDepth(uiBaseDepth + 3);
 
-    this.scoreSubmitStatusText = this.add.text(cx, cy + 138, 'Noch nicht gespeichert', {
+    this.scoreSubmitStatusText = this.add.text(cx, cy + 142, 'Noch nicht gespeichert', {
       fontSize: '12px',
       fill: '#dddddd',
       fontFamily: 'Courier'
-    }).setOrigin(0.5);
+    }).setOrigin(0.5).setDepth(uiBaseDepth + 3);
 
     this.scoreSubmitButton.on('pointerover', () => this.scoreSubmitButton.setStyle({ fill: '#ffff00' }));
     this.scoreSubmitButton.on('pointerout', () => this.scoreSubmitButton.setStyle({ fill: '#ffffff' }));
@@ -2109,32 +2243,33 @@ export default class GameScene extends Phaser.Scene {
     const topPanel = this.add.graphics();
     topPanel.fillStyle(0x101722, 0.95);
     topPanel.lineStyle(2, 0x5577aa, 1);
-    topPanel.fillRect(cx + 140, cy - 170, 300, 340);
-    topPanel.strokeRect(cx + 140, cy - 170, 300, 340);
+    topPanel.fillRect(topPanelLeft, cy - 170, 300, 340);
+    topPanel.strokeRect(topPanelLeft, cy - 170, 300, 340);
+    topPanel.setDepth(uiBaseDepth + 1);
 
-    this.topScoresTitleText = this.add.text(cx + 290, cy - 152, 'TOP 10 (nach Upload)', {
+    this.topScoresTitleText = this.add.text(topPanelLeft + 150, cy - 152, 'TOP 20 (nach Upload)', {
       fontSize: '13px',
       fill: '#a8c7ff',
       fontFamily: 'Courier',
       fontStyle: 'bold'
-    }).setOrigin(0.5);
+    }).setOrigin(0.5).setDepth(uiBaseDepth + 2);
 
-    this.topScoresText = this.add.text(cx + 154, cy - 130, 'Score speichern, dann wird die Top 10 geladen.', {
-      fontSize: '12px',
+    this.topScoresText = this.add.text(topPanelLeft + 14, cy - 130, 'Score speichern,\ndann wird die Top 20 geladen.', {
+      fontSize: '10px',
       fill: '#99aabb',
       fontFamily: 'Courier',
-      lineSpacing: 3
-    }).setOrigin(0, 0);
+      lineSpacing: 1
+    }).setOrigin(0, 0).setDepth(uiBaseDepth + 2);
 
     // Neustart-Button
-    const btn = this.add.text(cx, cy + 160, '[ NOCHMAL ]', {
+    const btn = this.add.text(cx, cy + 182, '[ NOCHMAL ]', {
       fontSize: '20px',
       fill: '#ffffff',
       fontFamily: 'Courier',
       fontStyle: 'bold',
       backgroundColor: '#007700',
       padding: { x: 16, y: 8 }
-    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true }).setDepth(uiBaseDepth + 3);
 
     btn.on('pointerover', () => btn.setStyle({ fill: '#ffff00' }));
     btn.on('pointerout', () => btn.setStyle({ fill: '#ffffff' }));
