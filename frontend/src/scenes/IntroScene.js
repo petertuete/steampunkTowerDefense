@@ -41,6 +41,7 @@ export class IntroScene extends Phaser.Scene {
       '',
       'CLICK - Turm platzieren auf dem Feld',
       'SHIFT + CLICK - Turm verkaufen',
+      '1-4 - Turm direkt auswaehlen (je nach freigeschaltetem Slot)',
       'T - Turm-Typ wechseln',
       'S - Spielgeschwindigkeit (1x → 2x → 3x)',
       '',

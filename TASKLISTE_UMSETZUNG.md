@@ -85,7 +85,9 @@ Legende: ✅ erledigt | ❌ entfernt/entfallen | ⏳ offen
 ## Milestone 4: Stabilisierung und Release Candidate
 
 58. ✅ P0: API Input-Validierung serverseitig umgesetzt
-59. ⏳ P0: Rate-Limiting auf Score-POST
+59. ✅ P0: Rate-Limiting auf Score-POST
+59a. ⏳ P0: Score-Trust hardening (Client-Score serverseitig verifizieren oder neu berechnen)
+59b. ⏳ P0: towerUsageByLevel serverseitig strikt validieren (Schema/Bounds/Unknown-Fields)
 60. ✅ P0: SQL-Injection-Risiko minimiert (Supabase Client Inserts)
 61. ✅ P1: Smoke-Testliste ausgefuehrt (lokal + deployed)
 62. ✅ P1: Edge Cases Basisvalidierung getestet
@@ -105,6 +107,8 @@ Legende: ✅ erledigt | ❌ entfernt/entfallen | ⏳ offen
 ## Empfohlene Reihenfolge naechste Session
 1. Balancing Level 2/3 mit externen Tester-Daten feinjustieren
 2. Punkte-System Feintuning (Scoring-Gewichte auf Basis echter Runs justieren)
-3. Optional Rate-Limiting fuer /api/v1/runs implementieren
-4. Supabase service-role key rotieren und in Render aktualisieren
-5. Grafik-/Asset-Phase planen
+3. Score-Trust hardening: Client-Score nicht mehr als Wahrheit behandeln
+4. towerUsageByLevel serverseitig strikt validieren
+5. Supabase service-role key rotieren und in Render aktualisieren
+6. Rate-Limits/Token-TTL anhand echter Nutzung nachjustieren
+7. Grafik-/Asset-Phase planen

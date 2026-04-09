@@ -40,32 +40,33 @@ export const LEVELS = {
     totalWaves: 20,
     allowedTowers: ['steamCannon', 'generator', 'flamethrower'],
     waves: [
-      'nnn',                    // W1:  3n
-      'nnnn.s',                 // W2:  4n 1s
-      'nnnn.ss',                // W3:  4n 2s
-      'nnn.ss.a',               // W4:  3n 2s 1a
-      'nn.sss.a',               // W5:  2n 3s 1a
-      'n.sss.aa',               // W6:  1n 3s 2a
-      'n.sss.aa',               // W7:  1n 3s 2a
-      'ssss.aaa',               // W8:  4s 3a
-      'ssss.aaa',               // W9:  4s 3a
-      'sss.aaaa',               // W10: 3s 4a
-      'n.ssss.aaaa',            // W11: 1n 4s 4a
-      'n.sssss.aaaa',           // W12: 1n 5s 4a
-      'sssss.aaaaa',            // W13: 5s 5a
-      'n.ssss.aaaaaa',          // W14: 1n 4s 6a
-      'ssssss.aaaaa',           // W15: 6s 5a
-      'n.sssss.aaaaaa',         // W16: 1n 5s 6a
-      'ssssss.aaaaaa',          // W17: 6s 6a
-      'n.ssssss.aaaaaa',        // W18: 1n 6s 6a
-      'sssssss.aaaaaa',         // W19: 7s 6a
-      'ssssss.aaaaaaaa',        // W20: 6s 8a (finale)
+      'n.n.n.n',                // W1:  4n 0s 0a
+      'nnn.nnn',                // W2:  6n 0s 0a
+      'nnn.....s',              // W3:  3n 1s 0a (längere Pause vor S)
+      'n.s.n.s.s',              // W4:  2n 3s 0a (gemischt)
+      'n.s.n.ss.s',             // W5:  2n 4s 0a (gemischt)
+      'n.sss.ss',               // W6:  1n 5s 0a
+      'ssss.a',                 // W7:  4s 1a (erste Armored)
+      'ssss.aa',                // W8:  4s 2a
+      'n.ssss.aa',              // W9:  1n 4s 2a
+      'sssss.aa',               // W10: 5s 2a
+      'n.sssss.aaa',            // W11: 1n 5s 3a
+      'sssss.aaa',              // W12: 5s 3a
+      'n.sssss.aaaa',           // W13: 1n 5s 4a
+      'ssssss.aaaa',            // W14: 6s 4a
+      'aaaaa.....nn.....sssss',         // W15: 2n 5s 5a (Konvergenz)
+      'aaaaaa.....nnn.....ssssss',      // W16: 3n 6s 6a (Konvergenz)
+      'aaaaaa.......nn.......sssssss',  // W17: 2n 7s 6a (Konvergenz)
+      'aaaaaaa.......nnn.......ssssssss',// W18: 3n 8s 7a (Konvergenz)
+      'aaaaaaaa....nnnn...ssssss',      // W19: 4n 6s 8a (kürzere Pause)
+      'aaannn.aassan.aannaass',         // W20: 6n 4s 10a (einzelner Punktabstand)
     ]
   },
   level3: {
     levelNumber: 3,
     displayName: 'Ultimate',
     totalWaves: 25,
+    allowedTowers: ['steamCannon', 'generator', 'flamethrower', 'Tesla'],
     waves: [
       'nnnn.s',                      // W1:  4n 1s
       'nnnnn.s',                     // W2:  5n 1s

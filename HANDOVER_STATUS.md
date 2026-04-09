@@ -147,7 +147,7 @@ Merksatz fuer Folge-Sessions:
 
 ## Offene naechste Schritte (priorisiert)
 1. Balancing-Feintuning Level 2/3 auf Basis echter Tester-Runs
-2. Optional: Rate-Limiting fuer POST /api/v1/runs ergaenzen
+2. Optional: bestehende Rate-Limits / Challenge-TTL auf Basis echter Nutzung nachjustieren
 3. Optional: Tester-Feedback-Loop aufsetzen (Formular + Auswertung)
 4. Supabase service-role key vorsorglich rotieren
 5. Post-Release Backlog unveraendert: Turm-Upgrades + Upgrade-UI

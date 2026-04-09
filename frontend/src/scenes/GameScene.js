@@ -38,6 +38,7 @@ export default class GameScene extends Phaser.Scene {
   preload() {
     // Hier werden später Assets geladen (Sprites, Tilesets, etc.)
     this.load.image('flamethrower-intro', '/flammenwerfer_intro.png');
+    this.load.image('tesla-intro', '/teslaturm_intro.png');
     this.debugLog('GameScene preload');
   }
 
@@ -292,7 +293,7 @@ export default class GameScene extends Phaser.Scene {
     this.towerPreviewGraphics = this.make.graphics({ x: 0, y: 0, add: true });
     this.towerPreviewGraphics.setDepth(999);
 
-    this.add.text(10, 96, 'Click je nach Modus | 1/2/3 Turmwahl | T wechseln | Shift = Verkauf | S Speed', {
+    this.add.text(10, 96, 'Click je nach Modus | 1/2/3/4 Turmwahl | T wechseln | Shift = Verkauf | S Speed', {
       fontSize: '11px',
       fill: '#888888',
       fontFamily: 'Courier'
@@ -401,6 +402,10 @@ export default class GameScene extends Phaser.Scene {
       if (this.isPaused || this.levelSplashVisible) return;
       this.selectTowerTypeByNumber(3);
     });
+    this.input.keyboard.on('keydown-FOUR', () => {
+      if (this.isPaused || this.levelSplashVisible) return;
+      this.selectTowerTypeByNumber(4);
+    });
 
     // Taste S: Spielgeschwindigkeit 1x/2x/3x
     this.input.keyboard.on('keydown-S', () => {
@@ -496,9 +501,11 @@ export default class GameScene extends Phaser.Scene {
     this.wavePauseTimer = WAVE_CONFIG.INITIAL_BUILD_PAUSE;
     this.waveTimerText.setText(`Erste Welle in: ${Math.ceil(this.wavePauseTimer / 1000)}s`);
 
-    // Splash für Level-2 Turm-Freischaltung (auch bei direkter Levelwahl)
+    // Splash für neue Turm-Freischaltungen (auch bei direkter Levelwahl)
     if (this.selectedLevelKey === 'level2') {
       this.showLevel2Splash();
+    } else if (this.selectedLevelKey === 'level3') {
+      this.showLevel3Splash();
     }
   }
 
@@ -783,13 +790,15 @@ export default class GameScene extends Phaser.Scene {
     });
     this.towerTypeButtons = [];
 
-    this.towerSelectionOrder.forEach((towerKey, slotIndex) => {
+    let visibleSlotIndex = 0;
+    this.towerSelectionOrder.forEach((towerKey) => {
       if (!this.towerTypeKeys.includes(towerKey)) {
         return;
       }
 
       const towerType = TOWER_TYPES[towerKey];
-      const x = startX + slotIndex * (BTN_WIDTH + GAP) + BTN_WIDTH / 2;
+      const x = startX + visibleSlotIndex * (BTN_WIDTH + GAP) + BTN_WIDTH / 2;
+      visibleSlotIndex++;
 
       const bg = this.add.rectangle(x, y, BTN_WIDTH, BTN_HEIGHT, 0x1f2430, 1)
         .setOrigin(0.5)
@@ -855,7 +864,8 @@ export default class GameScene extends Phaser.Scene {
     const numberToTower = {
       1: 'steamCannon',
       2: 'generator',
-      3: 'flamethrower'
+      3: 'flamethrower',
+      4: 'Tesla'
     };
 
     const towerKey = numberToTower[slotNumber];
@@ -2372,7 +2382,64 @@ export default class GameScene extends Phaser.Scene {
       lineSpacing: 6
     }).setOrigin(0.5).setDepth(11002);
 
-    const hint = this.add.text(centerX, centerY + 260, '[ LEERTASTE oder KLICK zum Fortfahren ]', {
+    const hint = this.add.text(centerX, centerY + 260, '[ LEERTASTE oder KLICK zum Fortfahren | Taste 3 = Flammenwerfer ]', {
+      fontSize: '14px',
+      fill: '#93c5fd',
+      fontFamily: 'Courier',
+      fontStyle: 'bold'
+    }).setOrigin(0.5).setDepth(11002);
+
+    overlay.on('pointerdown', () => this.closeLevelSplash(true));
+
+    this.levelSplashElements = [overlay, panel, title, towerName, image, desc, hint];
+  }
+
+  showLevel3Splash() {
+    this.levelSplashVisible = true;
+
+    const width = this.scale.width;
+    const height = this.scale.height;
+    const centerX = width / 2;
+    const centerY = height / 2;
+
+    const overlay = this.add.rectangle(centerX, centerY, width, height, 0x000000, 0.85)
+      .setDepth(11000)
+      .setInteractive();
+
+    const panel = this.add.rectangle(centerX, centerY, 920, 620, 0x111827, 0.96)
+      .setStrokeStyle(3, 0x33bbff, 1)
+      .setDepth(11001);
+
+    const title = this.add.text(centerX, centerY - 255, 'NEUER TURM FREIGESCHALTET', {
+      fontSize: '28px',
+      fill: '#ffd166',
+      fontFamily: 'Courier',
+      fontStyle: 'bold'
+    }).setOrigin(0.5).setDepth(11002);
+
+    const towerName = this.add.text(centerX, centerY - 215, 'TESLA-TURM', {
+      fontSize: '36px',
+      fill: '#4cc9ff',
+      fontFamily: 'Courier',
+      fontStyle: 'bold'
+    }).setOrigin(0.5).setDepth(11002);
+
+    const image = this.add.image(centerX, centerY - 25, 'tesla-intro')
+      .setDepth(11002)
+      .setDisplaySize(360, 260);
+
+    const desc = this.add.text(centerX, centerY + 165,
+      'Elektrischer Kettenangriff fuer Gruppen.\n' +
+      'Trifft das Hauptziel und springt danach\n' +
+      'auf weitere Gegner in Reichweite ueber.', {
+      fontSize: '18px',
+      fill: '#e5e7eb',
+      fontFamily: 'Courier',
+      align: 'center',
+      lineSpacing: 6
+    }).setOrigin(0.5).setDepth(11002);
+
+    const hint = this.add.text(centerX, centerY + 260, '[ LEERTASTE oder KLICK zum Fortfahren | Taste 4 = Tesla ]', {
       fontSize: '14px',
       fill: '#93c5fd',
       fontFamily: 'Courier',

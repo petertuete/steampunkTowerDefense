@@ -72,7 +72,9 @@ Sprich mich im lockeren Du-Stil an, und ich nenne dich Copilot.
 
 ### Prio 2 - Stabilisierung Security/Operations
 - Service-role key rotation in Supabase (vorsorglich)
-- Optional: Rate-Limiter fuer POST /api/v1/runs
+- Score-Trust hardening: scorePoints/scoreGold nicht mehr blind vom Client uebernehmen, sondern serverseitig verifizieren oder neu berechnen
+- towerUsageByLevel streng validieren (Tower-Keys, Integer-Bounds, Feldschema, Max-Anzahl, Unknown-Fields ablehnen)
+- Optional: bestehende Rate-Limits und Token-TTL anhand echter Nutzung nachjustieren
 - Optional: Monitoring/Alerting fuer Render Logs
 
 ### Prio 3 - Optional Polish

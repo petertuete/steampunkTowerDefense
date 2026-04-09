@@ -1,55 +1,56 @@
-# SECURITY WARNINGS — Pre-Release Checklist
+# SECURITY WARNINGS — Security Status
 
-**Status:** ⚠️ **LOKALE ENTWICKLUNG NUR**
+**Status:** ⚠️ **LIVE DEMO / HOBBY-BETRIEB, NICHT FULL-PRODUCTION**
 
-Diese API ist **NICHT produktionsbereit**. Die folgenden Sicherheitsmaßnahmen müssen vor einem Online-Release implementiert werden.
+Die API ist nicht mehr nur lokal, aber auch noch kein voll abgesicherter Production-Service. Mehrere Kernmaßnahmen sind bereits umgesetzt; offen bleiben vor allem Operations- und Hardening-Themen.
 
 ## Must-Have vor Production
 
 ### 1. Rate Limiting
-- [ ] Implementiert: 100 Requests pro IP pro Minute
-- [ ] Code-Location: `backend-mini/server.js`
-- [ ] Package: `express-rate-limit`
+- [x] Implementiert via `express-rate-limit`
+- [x] Code-Location: `lernen/backend-mini/server.js`
+- [x] Konfigurierbar ueber `RUNS_RATE_LIMIT_*` und `CHALLENGE_RATE_LIMIT_*`
 
 ### 2. SQL Injection Prevention
-- [ ] Alle DB-Queries verwenden Parameterized Statements
-- [ ] KEINE String-Konkatenation in WHERE/INSERT-Clauses
-- [ ] Package: `sqlite3` mit bound parameters
+- [x] Keine SQL-String-Konkatenation im App-Code
+- [x] DB-Zugriff laeuft ueber Supabase-Client statt manuell gebauter SQL-Strings
+- [ ] RLS/DB-Policies weiter regelmaessig pruefen
 
 ### 3. HTTPS + Authentifizierung
-- [ ] Production-URL hat HTTPS
-- [ ] API-Keys / JWT Tokens für Online-Version prüfen
-- [ ] CORS auf nur deine Domain limitieren (nicht "*")
+- [x] Live-Deployment laeuft ueber HTTPS
+- [x] CORS ist eingeschraenkt und konfigurierbar
+- [x] Run-Submits brauchen HMAC-Challenge-Token
+- [ ] Secret-Rotation und Incident-Prozess dokumentieren
 
 ### 4. Input Validation (Server-Side)
-- [ ] playerName: 1-20 chars, nur `[A-Za-z0-9 _-]`
-- [ ] scoreGold: Integer, >= 0, <= 9999999
-- [ ] Validation auf Backend, nicht nur Frontend!
+- [x] playerName: 3-10 Zeichen, serverseitig geprueft
+- [x] scoreGold / scorePoints: numerisch und >= 0
+- [x] towerUsageByLevel wird serverseitig validiert
 
 ### 5. Error Handling
-- [ ] Stack-Traces nicht in API-Responses
-- [ ] Generische Fehler-Messages ("Etwas ist schief gelaufen")
-- [ ] Logging nur in Server-Logs, nicht im Response
+- [x] Keine Stack-Traces in API-Responses
+- [x] Generische Fehler-Messages fuer Clients
+- [x] Detail-Logs bleiben im Server-Log
 
 ### 6. Request Size Limits
-- [ ] Max 1 KB Body Size
-- [ ] Max 100 KB Headers
+- [x] JSON-Body-Limit aktiv (`express.json({ limit: "1mb" })`)
+- [ ] Header-Limits nur ueber Infrastruktur/Proxy absichern
 
 ## Aktueller Status
 
-✅ CORS konfiguriert (lokal)  
-✅ Error-Response-Format definiert  
-❌ Rate Limiting: NICHT IMPLEMENTIERT  
-❌ SQL Injection Protection: NICHT IMPLEMENTIERT  
-❌ HTTPS: NICHT KONFIGURIERT  
-❌ Authentifizierung: NICHT IMPLEMENTIERT  
+✅ CORS konfiguriert und normalisiert  
+✅ Rate Limiting fuer Challenge + Run-Submit aktiv  
+✅ Request-Body-Limit aktiv  
+✅ HMAC-Auth fuer Run-Submit aktiv  
+✅ Input-Validation und generische Fehlerantworten aktiv  
+⚠️ Secret-Rotation / Monitoring / weitergehende Abuse-Defense offen  
 
 ## Timeline
 
-- **Lokale Phase (Jetzt):** Sicherheit optional
-- **Before Beta:** Mindestens Rate Limiting + HTTPS
-- **Before Production:** Alle Items ✅
+- **Jetzt:** Limits und Auth beobachten, Defaults sinnvoll halten
+- **Vor groesserem Playtest/Beta:** Monitoring, Secret-Rotation, Log-Review
+- **Vor echter Production:** Infrastruktur-Hardening und Operations-Prozesse komplettieren
 
 ---
 
-*Zuletzt aktualisiert: 25. März 2026*
+*Zuletzt aktualisiert: 9. April 2026*

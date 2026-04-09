@@ -30,12 +30,12 @@ export const TOWER_TYPES = {
     name: 'Flammwerfer',
     cost: 140,
     range: 85,
-    damage: 16,
+    damage: 20,
     fireRate: 1.2,
     color: 0xff3300,
     isDoT: true,
     dotDurationMs: 2500,
-    dotTickIntervalMs: 500,
+    dotTickIntervalMs: 250,
     dotDamageMultiplier: 0.3
   },
   Tesla: {

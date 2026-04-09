@@ -9,16 +9,22 @@ const { createClient } = require("@supabase/supabase-js");
 /**
  * ⚠️ SECURITY WARNING: PRE-RELEASE VERSION
  * 
- * Diese API ist für lokale Entwicklung (Singleplayer) konzipiert.
- * Vor Online-Release MÜSSEN folgende Sicherheitsmaßnahmen implementiert werden:
+ * Diese API ist fuer Demo-/Hobby-Betrieb gehaertet, aber nicht als vollwertiger
+ * Production-Service mit Observability, Secret-Rotation und Abuse-Defense auf
+ * Enterprise-Niveau gedacht.
+ *
+ * Bereits umgesetzt:
  * 
- * - [ ] Rate Limiting pro IP
- * - [ ] Request Size Limits
- * - [ ] SQL Injection Protection (Parameterized Queries)
- * - [ ] HTTPS + Authentifizierung (API Keys / JWT Tokens)
- * - [ ] Input Validation auf Server-Seite (nicht nur Client)
- * - [ ] Error Messages sanitieren (keine internen Details)
- * - [ ] Logging + Monitoring
+ * - [x] Rate Limiting pro IP
+ * - [x] Request Size Limits
+ * - [x] HMAC-basierte Run-Authentifizierung fuer Score-Submits
+ * - [x] Input Validation auf Server-Seite
+ * - [x] Error Messages ohne interne Details in Production-Pfaden
+ *
+ * Weiterhin sinnvoll:
+ * - [ ] Secret-Rotation und Monitoring/Alerting
+ * - [ ] Abuse-Defense/Bot-Resistenz weiter ausbauen
+ * - [ ] Infrastruktur-seitiges HTTPS und Deployment-Hardening sauber halten
  * 
  * Siehe: SECURITY_WARNINGS.md für Details.
  */
