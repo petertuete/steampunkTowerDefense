@@ -161,15 +161,41 @@ export default class GameScene extends Phaser.Scene {
     const GRID_WIDTH = 32;  // 1280 / 40
     const GRID_HEIGHT = 24; // 960 / 40
     const FIELD_TOP = this.HUD_HEIGHT; // Spielfeld fängt nach HUD an
+    const levelPathKey = `level${this.currentLevel.levelNumber}`;
+    const gridPath = PATHS[levelPathKey] || PATHS.level1;
+    const pathTileSet = new Set(gridPath.map((node) => `${node.gridX},${node.gridY}`));
+    const gridTextureKey = `grid-${levelPathKey}`;
+
+    // Bei Scene-Restarts alte Texture entfernen, damit Marker wirklich neu berechnet werden.
+    if (this.textures.exists(gridTextureKey)) {
+      this.textures.remove(gridTextureKey);
+    }
 
     // Grid-Marker zeichnen (X-Positionen statt Linien)
     const gridGraphics = this.make.graphics({ x: 0, y: FIELD_TOP, add: false });
     gridGraphics.lineStyle(1, 0x666666, 0.7);
 
-    // X-Marker bei jedem 40px-Raster-Punkt
+    // X-Marker auf echten Platzierungszentren (gleiches Grid wie Tower-Snapping)
+    // Ausblenden nur dort, wo ein 40x40 Turm mit Pfad-Tiles überlappen würde.
     const X_SIZE = 6;
-    for (let x = 0; x <= this.scale.width; x += this.TILE_SIZE) {
-      for (let y = 0; y <= this.scale.height - FIELD_TOP; y += this.TILE_SIZE) {
+    const isCenterBlockedByPath = (gx, gy) => {
+      return (
+        pathTileSet.has(`${gx - 1},${gy - 1}`) ||
+        pathTileSet.has(`${gx},${gy - 1}`) ||
+        pathTileSet.has(`${gx - 1},${gy}`) ||
+        pathTileSet.has(`${gx},${gy}`)
+      );
+    };
+
+    for (let gx = 0; gx <= GRID_WIDTH; gx += 1) {
+      for (let gy = 0; gy <= GRID_HEIGHT; gy += 1) {
+        if (isCenterBlockedByPath(gx, gy)) {
+          continue;
+        }
+
+        const x = gx * this.TILE_SIZE;
+        const y = gy * this.TILE_SIZE;
+
         // Kleines X zeichnen
         gridGraphics.beginPath();
         gridGraphics.moveTo(x - X_SIZE / 2, y - X_SIZE / 2);
@@ -183,30 +209,60 @@ export default class GameScene extends Phaser.Scene {
       }
     }
 
-    gridGraphics.generateTexture('grid', this.scale.width, this.scale.height - FIELD_TOP);
+    gridGraphics.generateTexture(gridTextureKey, this.scale.width, this.scale.height - FIELD_TOP);
     gridGraphics.destroy();
 
     // Grid als Bild anzeigen (mit Offset)
-    this.add.image(0, FIELD_TOP, 'grid').setOrigin(0, 0);
+    this.add.image(0, FIELD_TOP, gridTextureKey).setOrigin(0, 0);
 
     // Hoverfield-Highlight für Zielposition
     this.hoverFieldGraphics = this.make.graphics({ x: 0, y: FIELD_TOP, add: true });
     this.hoverFieldGraphics.setDepth(99);
 
     // Pfad visualisieren (als Felder, nicht als Linien, mit Offset)
-    const levelPathKey = `level${this.currentLevel.levelNumber}`;
-    const gridPath = PATHS[levelPathKey] || PATHS.level1;
     const pathGraphics = this.make.graphics({ x: 0, y: FIELD_TOP, add: true });
     
-    // Alle Pfad-Felder zeichnen (grau)
-    pathGraphics.fillStyle(0x888888, 0.35);
-    pathGraphics.lineStyle(2, 0xaaaaaa, 0.6);
-    
-    for (const gridCoord of gridPath) {
+    // Alle Pfad-Felder zeichnen mit Doppelkontrast (dunkler Rand + hellerer Kern)
+    const outerColor = 0x2a2f3a;
+    const outerAlpha = 0.9;
+    const innerColor = 0x5b6474;
+    const innerAlpha = 0.75;
+    const inset = 4;
+
+    for (let i = 0; i < gridPath.length; i += 1) {
+      const gridCoord = gridPath[i];
       const px = gridCoord.gridX * this.TILE_SIZE;
       const py = gridCoord.gridY * this.TILE_SIZE;
+      const prev = i > 0 ? gridPath[i - 1] : null;
+      const next = i < gridPath.length - 1 ? gridPath[i + 1] : null;
+
+      // Innenkanten zwischen direkt verbundenen Pfad-Tiles entfernen
+      let leftInset = inset;
+      let rightInset = inset;
+      let topInset = inset;
+      let bottomInset = inset;
+
+      const neighbors = [prev, next];
+      for (const neighbor of neighbors) {
+        if (!neighbor) continue;
+        const dx = neighbor.gridX - gridCoord.gridX;
+        const dy = neighbor.gridY - gridCoord.gridY;
+        if (dx === -1 && dy === 0) leftInset = 0;
+        if (dx === 1 && dy === 0) rightInset = 0;
+        if (dx === 0 && dy === -1) topInset = 0;
+        if (dx === 0 && dy === 1) bottomInset = 0;
+      }
+
+      pathGraphics.fillStyle(outerColor, outerAlpha);
       pathGraphics.fillRect(px, py, this.TILE_SIZE, this.TILE_SIZE);
-      pathGraphics.strokeRect(px, py, this.TILE_SIZE, this.TILE_SIZE);
+
+      pathGraphics.fillStyle(innerColor, innerAlpha);
+      pathGraphics.fillRect(
+        px + leftInset,
+        py + topInset,
+        this.TILE_SIZE - leftInset - rightInset,
+        this.TILE_SIZE - topInset - bottomInset
+      );
     }
 
     // Startfeld grün markieren
