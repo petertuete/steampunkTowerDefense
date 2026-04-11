@@ -126,9 +126,7 @@ function createRunAuthToken(req) {
   const payload = {
     nonce: crypto.randomBytes(16).toString("hex"),
     iat: nowSec,
-    exp: nowSec + runAuthTokenTtlSeconds,
-    ip: req.ip || "",
-    ua: req.get("user-agent") || ""
+    exp: nowSec + runAuthTokenTtlSeconds
   };
 
   const payloadBase64 = Buffer.from(JSON.stringify(payload), "utf8").toString("base64url");
@@ -171,10 +169,6 @@ function verifyAndConsumeRunAuthToken(token, req) {
 
   if (!Number.isFinite(payload.exp) || payload.exp < nowSec) {
     return { ok: false, reason: "expired" };
-  }
-
-  if (payload.ip !== (req.ip || "") || payload.ua !== (req.get("user-agent") || "")) {
-    return { ok: false, reason: "context" };
   }
 
   if (usedRunAuthNonces.has(payload.nonce)) {
