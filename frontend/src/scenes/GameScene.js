@@ -1538,6 +1538,16 @@ export default class GameScene extends Phaser.Scene {
       totalGoldRemaining: this.gold,
       livesRemaining: this.lives,
       clientVersion: this.clientVersion,
+      scoreMeta: {
+        scoreBreakdown: {
+          killPoints: this.scoreBreakdown.killPoints,
+          noLeakWavePoints: this.scoreBreakdown.noLeakWavePoints,
+          levelClearPoints: this.scoreBreakdown.levelClearPoints,
+          goldPoints: this.scoreBreakdown.goldPoints
+        },
+        totalNoLeakWaves: this.totalNoLeakWaves,
+        runHasSoldTower: this.runHasSoldTower
+      },
       towerUsageByLevel: this.towerUsageByLevel
     };
   }

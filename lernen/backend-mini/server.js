@@ -47,6 +47,24 @@ const runsRateLimitMax = parsePositiveIntEnv(process.env.RUNS_RATE_LIMIT_MAX, 30
 const challengeRateLimitWindowMs = parsePositiveIntEnv(process.env.CHALLENGE_RATE_LIMIT_WINDOW_MS, 60_000);
 const challengeRateLimitMax = parsePositiveIntEnv(process.env.CHALLENGE_RATE_LIMIT_MAX, 60);
 const runAuthTokenTtlSeconds = parsePositiveIntEnv(process.env.RUN_AUTH_TOKEN_TTL_SECONDS, 60);
+const maxTowerPlacementsPerLevel = parsePositiveIntEnv(process.env.MAX_TOWER_PLACEMENTS_PER_LEVEL, 500);
+
+const SCORE_RULES = {
+  KILL_POINTS: 10,
+  NO_LEAK_WAVE_POINTS: 50,
+  LEVEL_CLEAR_BASE_POINTS: 500,
+  POINTS_PER_LIFE: 20,
+  PERFECTION_MULTIPLIER: 1.5
+};
+
+const LEVEL_TOTAL_WAVES_BY_NUMBER = {
+  1: 15,
+  2: 20,
+  3: 25
+};
+
+const CAMPAIGN_MAX_LEVEL = Object.keys(LEVEL_TOTAL_WAVES_BY_NUMBER).length;
+const MAX_LIVES = 20;
 
 const configuredRunAuthSecret = process.env.RUN_AUTH_SECRET || "";
 const RUN_AUTH_SECRET = configuredRunAuthSecret || (isProduction ? "" : `dev-${crypto.randomBytes(32).toString("hex")}`);
@@ -295,21 +313,223 @@ function sanitizePlayerName(name) {
   return trimmed.replace(/\s+/g, " ");
 }
 
+function toNonNegativeInt(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric < 0) {
+    return null;
+  }
+  return Math.round(numeric);
+}
+
+function isObject(value) {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function sanitizePlacement(placement) {
+  if (!isObject(placement)) {
+    return null;
+  }
+
+  const placementId = toNonNegativeInt(placement.placementId);
+  const gridX = toNonNegativeInt(placement.gridX);
+  const gridY = toNonNegativeInt(placement.gridY);
+  const screenX = Number.isFinite(placement.screenX) ? Math.round(placement.screenX) : null;
+  const screenY = Number.isFinite(placement.screenY) ? Math.round(placement.screenY) : null;
+  const placedAtWave = toNonNegativeInt(placement.placedAtWave);
+  const soldAtWave = placement.soldAtWave == null ? null : toNonNegativeInt(placement.soldAtWave);
+
+  if (
+    placementId == null ||
+    gridX == null ||
+    gridY == null ||
+    screenX == null ||
+    screenY == null ||
+    placedAtWave == null ||
+    typeof placement.towerTypeKey !== "string" ||
+    placement.towerTypeKey.length < 1 ||
+    placement.towerTypeKey.length > 64 ||
+    typeof placement.towerName !== "string" ||
+    placement.towerName.length < 1 ||
+    placement.towerName.length > 64
+  ) {
+    return null;
+  }
+
+  const sold = Boolean(placement.sold);
+  if (sold && soldAtWave == null) {
+    return null;
+  }
+  if (!sold && soldAtWave != null) {
+    return null;
+  }
+  if (soldAtWave != null && soldAtWave < placedAtWave) {
+    return null;
+  }
+
+  return {
+    placementId,
+    towerTypeKey: placement.towerTypeKey,
+    towerName: placement.towerName,
+    gridX,
+    gridY,
+    screenX,
+    screenY,
+    placedAtWave,
+    placedAtMs: Number.isFinite(placement.placedAtMs) ? Math.round(placement.placedAtMs) : null,
+    sold,
+    soldAtWave,
+    soldAtMs: Number.isFinite(placement.soldAtMs) ? Math.round(placement.soldAtMs) : null
+  };
+}
+
 function isValidTowerUsageByLevel(towerUsageByLevel) {
   if (!towerUsageByLevel || typeof towerUsageByLevel !== "object") {
-    return false;
+    return { ok: false, value: null };
   }
 
-  for (const levelUsage of Object.values(towerUsageByLevel)) {
-    if (!levelUsage || typeof levelUsage !== "object") {
-      return false;
+  const normalized = {};
+  const levelKeys = Object.keys(towerUsageByLevel);
+  if (levelKeys.length === 0 || levelKeys.length > CAMPAIGN_MAX_LEVEL) {
+    return { ok: false, value: null };
+  }
+
+  for (const [levelKey, levelUsage] of Object.entries(towerUsageByLevel)) {
+    if (!isObject(levelUsage)) {
+      return { ok: false, value: null };
     }
+
+    if (!Object.prototype.hasOwnProperty.call(levelUsage, "placements")) {
+      return { ok: false, value: null };
+    }
+
     if (!Array.isArray(levelUsage.placements)) {
-      return false;
+      return { ok: false, value: null };
     }
+    if (levelUsage.placements.length > maxTowerPlacementsPerLevel) {
+      return { ok: false, value: null };
+    }
+
+    const placements = [];
+    const placementIds = new Set();
+    for (const placement of levelUsage.placements) {
+      const sanitized = sanitizePlacement(placement);
+      if (!sanitized) {
+        return { ok: false, value: null };
+      }
+      if (placementIds.has(sanitized.placementId)) {
+        return { ok: false, value: null };
+      }
+      placementIds.add(sanitized.placementId);
+      placements.push(sanitized);
+    }
+
+    normalized[levelKey] = {
+      levelNumber: toNonNegativeInt(levelUsage.levelNumber),
+      levelName: typeof levelUsage.levelName === "string" ? levelUsage.levelName.slice(0, 80) : null,
+      placements
+    };
   }
 
-  return true;
+  return { ok: true, value: normalized };
+}
+
+function inferClearedLevelsCount(result, selectedLevelNumber) {
+  if (!Number.isFinite(selectedLevelNumber)) {
+    return 0;
+  }
+
+  const level = Math.max(1, Math.min(CAMPAIGN_MAX_LEVEL, Math.round(selectedLevelNumber)));
+  if (result === "won") {
+    return level;
+  }
+
+  return Math.max(0, level - 1);
+}
+
+function inferMaxNoLeakWaves(result, selectedLevelNumber, waveReached) {
+  const level = Math.max(1, Math.min(CAMPAIGN_MAX_LEVEL, Math.round(selectedLevelNumber || 1)));
+
+  let previousLevelsWaves = 0;
+  for (let i = 1; i < level; i += 1) {
+    previousLevelsWaves += LEVEL_TOTAL_WAVES_BY_NUMBER[i] || 0;
+  }
+
+  const levelTotalWaves = LEVEL_TOTAL_WAVES_BY_NUMBER[level] || 0;
+  const reached = Number.isFinite(waveReached)
+    ? Math.max(0, Math.min(levelTotalWaves, Math.round(waveReached)))
+    : 0;
+  const currentLevelWaves = result === "won" ? levelTotalWaves : reached;
+  return previousLevelsWaves + currentLevelWaves;
+}
+
+function validateAndComputeScore(body) {
+  if (!isObject(body.scoreMeta) || !isObject(body.scoreMeta.scoreBreakdown)) {
+    return { ok: false, error: "scoreMeta fehlt oder ist ungueltig." };
+  }
+
+  const breakdown = body.scoreMeta.scoreBreakdown;
+  const killPoints = toNonNegativeInt(breakdown.killPoints);
+  const noLeakWavePoints = toNonNegativeInt(breakdown.noLeakWavePoints);
+  const levelClearPoints = toNonNegativeInt(breakdown.levelClearPoints);
+  const goldPoints = toNonNegativeInt(breakdown.goldPoints);
+  const totalNoLeakWaves = toNonNegativeInt(body.scoreMeta.totalNoLeakWaves);
+
+  if (
+    killPoints == null ||
+    noLeakWavePoints == null ||
+    levelClearPoints == null ||
+    goldPoints == null ||
+    totalNoLeakWaves == null
+  ) {
+    return { ok: false, error: "scoreMeta enthaelt ungueltige Werte." };
+  }
+
+  const totalKills = toNonNegativeInt(body.totalKills);
+  if (totalKills == null) {
+    return { ok: false, error: "totalKills ist ungueltig." };
+  }
+
+  if (killPoints !== totalKills * SCORE_RULES.KILL_POINTS) {
+    return { ok: false, error: "killPoints passen nicht zu totalKills." };
+  }
+
+  if (noLeakWavePoints !== totalNoLeakWaves * SCORE_RULES.NO_LEAK_WAVE_POINTS) {
+    return { ok: false, error: "noLeakWavePoints passen nicht zu totalNoLeakWaves." };
+  }
+
+  const maxNoLeakWaves = inferMaxNoLeakWaves(body.result, body.selectedLevelNumber, body.waveReached);
+  if (totalNoLeakWaves > maxNoLeakWaves) {
+    return { ok: false, error: "totalNoLeakWaves ist unplausibel." };
+  }
+
+  const clears = inferClearedLevelsCount(body.result, body.selectedLevelNumber);
+  const minClearPoints = clears * SCORE_RULES.LEVEL_CLEAR_BASE_POINTS;
+  const maxClearPoints = clears * (SCORE_RULES.LEVEL_CLEAR_BASE_POINTS + SCORE_RULES.POINTS_PER_LIFE * MAX_LIVES);
+  if (levelClearPoints < minClearPoints || levelClearPoints > maxClearPoints || levelClearPoints % SCORE_RULES.POINTS_PER_LIFE !== 0) {
+    return { ok: false, error: "levelClearPoints sind unplausibel." };
+  }
+
+  const claimedScoreGold = toNonNegativeInt(body.scoreGold);
+  if (claimedScoreGold == null || claimedScoreGold !== goldPoints) {
+    return { ok: false, error: "scoreGold passt nicht zu goldPoints." };
+  }
+
+  const basePoints = killPoints + noLeakWavePoints + levelClearPoints + goldPoints;
+  const runHasSoldTower = Boolean(body.scoreMeta.runHasSoldTower);
+  const canonicalScorePoints = runHasSoldTower
+    ? basePoints
+    : Math.round(basePoints * SCORE_RULES.PERFECTION_MULTIPLIER);
+
+  const claimedScorePoints = toNonNegativeInt(body.scorePoints);
+  if (claimedScorePoints == null || claimedScorePoints !== canonicalScorePoints) {
+    return { ok: false, error: "scorePoints stimmen nicht mit serverseitiger Berechnung ueberein." };
+  }
+
+  return {
+    ok: true,
+    canonicalScorePoints,
+    canonicalScoreGold: claimedScoreGold
+  };
 }
 
 function flattenTowerPlacements(runId, towerUsageByLevel) {
@@ -386,16 +606,13 @@ app.post("/api/v1/runs", submitRunsLimiter, requireRunSubmitAuth, async (req, re
       return res.status(400).json({ error: "Ungueltiger playerName (3-10 Zeichen)." });
     }
 
-    const scorePointsInput = Number.isFinite(body.scorePoints) ? body.scorePoints : body.scoreGold;
-    if (!Number.isFinite(scorePointsInput) || scorePointsInput < 0) {
-      return res.status(400).json({ error: "scorePoints muss eine positive Zahl sein." });
+    const validatedScore = validateAndComputeScore(body);
+    if (!validatedScore.ok) {
+      return res.status(400).json({ error: validatedScore.error });
     }
 
-    if (!Number.isFinite(body.scoreGold) || body.scoreGold < 0) {
-      return res.status(400).json({ error: "scoreGold muss eine positive Zahl sein." });
-    }
-
-    if (!isValidTowerUsageByLevel(body.towerUsageByLevel)) {
+    const validatedTowerUsage = isValidTowerUsageByLevel(body.towerUsageByLevel);
+    if (!validatedTowerUsage.ok) {
       return res.status(400).json({ error: "towerUsageByLevel ist ungueltig." });
     }
 
@@ -408,8 +625,8 @@ app.post("/api/v1/runs", submitRunsLimiter, requireRunSubmitAuth, async (req, re
     const runRow = {
       player_name: playerName,
       result: body.result === "won" ? "won" : "lost",
-      score_points: Math.round(scorePointsInput),
-      score_gold: Math.round(body.scoreGold),
+      score_points: validatedScore.canonicalScorePoints,
+      score_gold: validatedScore.canonicalScoreGold,
       selected_level_key: body.selectedLevelKey || null,
       selected_level_number: Number.isFinite(body.selectedLevelNumber) ? body.selectedLevelNumber : null,
       wave_reached: Number.isFinite(body.waveReached) ? body.waveReached : null,
@@ -420,7 +637,7 @@ app.post("/api/v1/runs", submitRunsLimiter, requireRunSubmitAuth, async (req, re
       total_gold_spent: Number.isFinite(body.totalGoldSpent) ? body.totalGoldSpent : 0,
       total_gold_remaining: Number.isFinite(body.totalGoldRemaining) ? body.totalGoldRemaining : 0,
       lives_remaining: Number.isFinite(body.livesRemaining) ? body.livesRemaining : null,
-      tower_usage_by_level: body.towerUsageByLevel,
+      tower_usage_by_level: validatedTowerUsage.value,
       client_version: body.clientVersion || null,
       submitted_at: new Date().toISOString()
     };
@@ -436,7 +653,7 @@ app.post("/api/v1/runs", submitRunsLimiter, requireRunSubmitAuth, async (req, re
       return res.status(500).json({ error: "Run konnte nicht gespeichert werden." });
     }
 
-    const placements = flattenTowerPlacements(insertedRun.id, body.towerUsageByLevel);
+    const placements = flattenTowerPlacements(insertedRun.id, validatedTowerUsage.value);
     if (placements.length > 0) {
       const { error: usageInsertError } = await supabase
         .from("tower_usage_entries")
