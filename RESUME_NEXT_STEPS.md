@@ -72,10 +72,13 @@ Sprich mich im lockeren Du-Stil an, und ich nenne dich Copilot.
 
 ### Prio 2 - Stabilisierung Security/Operations
 - Service-role key rotation in Supabase (vorsorglich)
-- Score-Trust hardening: scorePoints/scoreGold nicht mehr blind vom Client uebernehmen, sondern serverseitig verifizieren oder neu berechnen
-- towerUsageByLevel streng validieren (Tower-Keys, Integer-Bounds, Feldschema, Max-Anzahl, Unknown-Fields ablehnen)
+- Optional: Replay-Defense explizit live verifizieren (gleiches Token 2x => zweiter Submit muss mit replay fehlschlagen)
 - Optional: bestehende Rate-Limits und Token-TTL anhand echter Nutzung nachjustieren
 - Optional: Monitoring/Alerting fuer Render Logs
+
+Erledigt am 11. April 2026:
+- Score-Trust hardening ist umgesetzt (serverseitige Score-Verifikation statt blindem Client-Trust)
+- towerUsageByLevel wird streng validiert und normalisiert
 
 ### Prio 3 - Optional Polish
 - Leaderboard-UI visuell verfeinern
