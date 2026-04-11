@@ -80,6 +80,14 @@ Erledigt am 11. April 2026:
 - Score-Trust hardening ist umgesetzt (serverseitige Score-Verifikation statt blindem Client-Trust)
 - towerUsageByLevel wird streng validiert und normalisiert
 
+### Prio 2b - Score-Hardening Post-Release (wenn Spielerkreis wächst)
+- Aktuelles Risiko: Wer die Scoring-Formel kennt (steht im öffentlichen Frontend-Code), kann mathematisch konsistente
+  Fake-Payloads bauen und diese per curl in die Highscore schreiben. HMAC-Auth + Nonce verhindert Replay,
+  aber keine inhaltlich gefaketen Runs.
+- Lösung: Server-side Game Simulation oder inkrementelle signierte Events (jeder Kill/jede Welle einzeln
+  ans Backend). Größerer Umbau, lohnt sich erst bei echtem Leaderboard-Missbrauch.
+- Trigger: Wenn Leaderboard-Fakes sichtbar werden oder Spielerkreis auf >50 aktive Nutzer wächst.
+
 ### Prio 3 - Optional Polish
 - Leaderboard-UI visuell verfeinern
 - Level-Beschreibungen im Selector ([Beginner - Einsteiger])

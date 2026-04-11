@@ -43,7 +43,9 @@ Die API ist nicht mehr nur lokal, aber auch noch kein voll abgesicherter Product
 ✅ Request-Body-Limit aktiv  
 ✅ HMAC-Auth fuer Run-Submit aktiv  
 ✅ Input-Validation und generische Fehlerantworten aktiv  
-⚠️ Secret-Rotation / Monitoring / weitergehende Abuse-Defense offen  
+⚠️ Secret-Rotation / Monitoring / weitergehende Abuse-Defense offen
+⚠️ Score-Faking durch konsistente Fake-Payloads möglich (kein Server-side Replay der Spiellogik)
+   → Akzeptiertes Risiko für Hobby-Betrieb. Fix: inkrementelle signierte Events oder Server-Simulation.  
 
 ## Timeline
 
