@@ -268,17 +268,19 @@ export class Tower {
       return;
     }
 
-    const BUFF_AMOUNT = 0.15; // +15% Damage, nicht stapelbar
+    const BUFF_AMOUNT = 0.33; // +33% Damage, nicht stapelbar
     const tileSize = this.scene?.TILE_SIZE || 40;
+    const generatorBuffTileRadius = 1;
 
     let hasNearbyGenerator = false;
     if (this.scene.towers) {
       for (const tower of this.scene.towers) {
         if (tower.isGenerator) {
-          // Exakt die 8 Nachbarfelder (inkl. diagonal), kein globaler Radius
+          // Alle Felder im 2-Tile-Ring um den Generator (inkl. innerem Ring), kein globaler Radius
           const dx = Math.abs(tower.x - this.x);
           const dy = Math.abs(tower.y - this.y);
-          const isNeighborField = dx <= tileSize && dy <= tileSize && (dx > 0 || dy > 0);
+          const maxDistance = generatorBuffTileRadius * tileSize;
+          const isNeighborField = dx <= maxDistance && dy <= maxDistance && (dx > 0 || dy > 0);
 
           if (isNeighborField) {
             hasNearbyGenerator = true;
