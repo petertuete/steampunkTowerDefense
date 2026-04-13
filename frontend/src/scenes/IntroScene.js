@@ -37,25 +37,25 @@ export class IntroScene extends Phaser.Scene {
     const instructionY = 150;
     const lineSpacing = 24;
     const instructions = [
-      'GRUNDLEGENDE STEUERUNG:',
+      'STEUERUNG:',
       '',
-      'CLICK - Turm platzieren auf dem Feld',
+      'CLICK - Turm platzieren',
       'SHIFT + CLICK - Turm verkaufen',
-      '1-4 - Turm direkt auswaehlen (je nach freigeschaltetem Slot)',
+      '1-4 - Turm auswählen',
       'T - Turm-Typ wechseln',
       'S - Spielgeschwindigkeit (1x → 2x → 3x)',
       '',
-      'ZIEL: Baue Türme, um enemy waves zu besiegen',
-      'Greife nach Ansage auf "JETZT STARTEN"',
+      'ZIEL: Wehre die Gegnerwellen ab',
+      'Klick auf SPIELSTART oder Leertaste',
       '',
       'TÜRME:',
-      '• Dampfkanone (Grün) - Basis-Turm',
-      '• Generator (Helldunkelgrün) - Buff für andere Türme',
+      '• Dampfkanone (Grün) - rasant, hoher Schaden',
+      '• Generator (Türkis) - verstärkt andere Türme (+33%)',
       '',
       'GEGNER:',
-      '• Grün - Normal',
-      '• Orange - Schnell',
-      '• Gelb - Gepanzert (tankt mehr Schaden)'
+      '• Waldläufer (Grün) - Standard-Gegner',
+      '• Racer (Orange) - schnell, leicht zu treffen',
+      '• Panzer (Gelb) - beharrlich, viel HP'
     ];
 
     instructions.forEach((line, index) => {
@@ -145,36 +145,25 @@ export class IntroScene extends Phaser.Scene {
     content.innerHTML = `
       <div style="color:#d1fae5;font-size:13px;line-height:1.6;color:#dde6ff;">
         <div style="margin-bottom:14px;">
-          <span style="color:#7dd3fc;font-weight:bold;">Basis-Score pro Level:</span>
+          <span style="color:#7dd3fc;font-weight:bold;">Punkte-Quellen:</span>
         </div>
         <div style="margin-left:12px;margin-bottom:12px;">
-          • <span style="color:#a7f3d0;">Kills:</span> 10 Punkte pro Kill<br>
-          • <span style="color:#a7f3d0;">Leak-freie Wellen:</span> 50 Punkte pro Welle ohne Leak<br>
-          • <span style="color:#a7f3d0;">Level erfolgreich:</span> 500 + 20 Punkte je Leben<br>
-          • <span style="color:#a7f3d0;">Endgold:</span> 1 Punkt pro Gold
+          • <span style="color:#a7f3d0;">Kills:</span> 10 Punkte pro Gegner<br>
+          • <span style="color:#a7f3d0;">Leak-freie Wellen:</span> 50 Punkte pro Welle (wenn keine durchkommen)<br>
+          • <span style="color:#a7f3d0;">Level geschafft:</span> 500 Base + 20 pro verbliebenem Leben<br>
+          • <span style="color:#a7f3d0;">Endgold:</span> 1 Punkt pro Gold in der Kasse
         </div>
 
         <div style="margin-bottom:14px;margin-top:16px;">
-          <span style="color:#7dd3fc;font-weight:bold;">Perfection Bonus:</span>
+          <span style="color:#7dd3fc;font-weight:bold;">Perfection Bonus — die große Belohnung:</span>
         </div>
         <div style="margin-left:12px;margin-bottom:12px;padding:10px;background:rgba(100,200,100,0.1);border-left:2px solid #86efac;">
-          Wenn du <span style="color:#fbbf24;font-weight:bold;">kein Turm verkauft</span> hast:<br>
+          Wenn du <span style="color:#fbbf24;font-weight:bold;">keinen Turm verkauft hast</span> (Perfect Play):<br>
           <span style="color:#fbbf24;font-weight:bold;">Finale Score × 1.5</span>
         </div>
 
-        <div style="margin-bottom:14px;margin-top:16px;">
-          <span style="color:#7dd3fc;font-weight:bold;">Beispiel:</span>
-        </div>
-        <div style="margin-left:12px;padding:10px;background:rgba(68,136,255,0.1);border-left:2px solid #60a5fa;font-size:12px;">
-          100 Kills (1000) + 10 leak-freie Wellen (500) +<br>
-          12 Leben (740) + 150 Gold = <span style="color:#86efac;">2390 Basis</span><br>
-          <br>
-          <span style="color:#fbbf24;">✓ Kein Verkauf:</span> 2390 × 1.5 = <span style="color:#86efac;font-weight:bold;">3585 Punkte</span><br>
-          <span style="color:#f87171;">✗ Mit Verkauf:</span> 2390 × 1.0 = <span style="color:#86efac;">2390 Punkte</span>
-        </div>
-
         <div style="margin-top:16px;padding:10px;background:rgba(200,100,100,0.1);border-left:2px solid #fca5a5;font-size:12px;color:#fecaca;">
-          💡 <span style="font-weight:bold;">Hinweis:</span> Plane deine Türme sorgfältig! Perfekt geplant ohne Verkauf: 50% Bonus-Punkte.
+          💡 <span style="font-weight:bold;">Strategie-Tipp:</span> Planen ist alles. Gib' keinen Turm her für +50% Bonus.
         </div>
       </div>
     `;
