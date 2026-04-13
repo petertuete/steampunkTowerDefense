@@ -1,13 +1,19 @@
-# Resume Next Steps
+# Resume Next Steps — Handover 13. April 2026
 
-Wenn nach vollständigem Kontextverlust weitergemacht werden soll, nutze diesen Starttext:
+**Status:** ✅ Production-ready. Gameplay balanciert, Security gehärtet, Live-Deployment stabil.
 
-Ich möchte exakt am letzten BrowserGame-Checkpoint weitermachen.
+Wenn nach vollständigem Kontextverlust weitergemacht werden soll:
+
+**Starttext:**
+```
+Ich möchte exakt am letzten BrowserGame-Checkpoint weitermachen (13.4.2026, 20:45).
 Bitte lies zuerst HANDOVER_STATUS.md und danach frontend/src/scenes/GameScene.js.
-Führe dann einen kurzen Ist-Check durch (was läuft bereits, was fehlt noch) und schlage den nächsten kleinstmöglichen Schritt vor.
+Führe dann einen kurzen Ist-Check durch (was läuft bereits, was fehlt noch) 
+und schlage den nächsten kleinstmöglichen Schritt vor.
 Arbeite in kleinen, testbaren Schritten.
 Nutze den Stil: trocken, nerdig, intelligent, mit Ironie/Sarkasmus.
 Sprich mich im lockeren Du-Stil an, und ich nenne dich Copilot.
+```
 
 ## Schnellstart für den nächsten Tag
 1. cd frontend
@@ -33,59 +39,58 @@ Sprich mich im lockeren Du-Stil an, und ich nenne dich Copilot.
 - Git-Tag fuer Live-Stand vorhanden: v1.0.0-live
 - Neuer Checkpoint-Tag vorhanden: v1.1.0-scoring-live
 
-## Aktueller Funktionsstand (13. April 2026)
-- 3-Level-Kampagne: Beginner / Advanced / Ultimate (15 / 20 / 20 Wellen)
-- Auto-Progression nach Level-Abschluss
-- Kumulatives Gold-Scoring (Gold aus vorherigen Levels = Sonderkonto)
-- Jedes neue Level startet mit frischem STARTING_GOLD (400g)
-- 5 Turm-Typen (Mörser entfernt):
-  - Dampfkanone: Standard-Projektil
-  - Hochdruck-Kanone: Langstrecken-Projektil
-  - Flammenwerfer: Beam-Schaden (kontinuierlich) + Nachbrennen DoT
-  - Tesla: Instant-Chain-Blitz, kein Projektil
-  - Generator: +33% Buff (nicht stapelbar)
-- Tower verkaufen per Shift+Linksklick (75%)
-- Sell-Modus-Anzeige im HUD
-- Speed-Toggle S (1x / 2x)
-- Wellen-Skalierung: +14% HP pro Welle
-- Level-Skalierung: x1.0 / x1.6 / x2.2 HP
-- Armored: 50% DoT-Resistenz
-- Nachbrennen-Cooldown: 1x alle 2.5s pro Gegner
-- Wave-Stringformat aktiv: n/s/a/. (inkl. Extra-Pausen via '.')
-- Level-2 Pfad als Zickzack umgesetzt
-- Level-2 Gegner droppen doppeltes Gold
-- Nameingabe und Score-Submit ans Backend abgeschlossen
-- Endscreen Top-20 Leaderboard abgeschlossen
-- Backend-Hardening aktiv (ALLOWED_ORIGINS, production-safe health)
-- Punkte-System aktiv (Kill/Wave/Clear/Gold + Perfection x1.5)
-- Endscreen 3-Panel-Layout aktiv (Run-Rechnung | Summary | Top20)
-- HUD-Live-Score aktiv
+## Aktueller Funktionsstand (13. April 2026, 20:45 UTC)
+- ✅ 3-Level-Kampagne: Beginner / Advanced / Ultimate (15 / 20 / 20 Wellen)
+- ✅ Auto-Progression nach Level-Abschluss
+- ✅ Kumulatives Gold-Scoring
+- ✅ 5 Turm-Typen mit Balancing:
+  - Dampfkanone: 30 DMG, 0,4 Fire Rate, Range 120
+  - Hochdruck-Kanone: 40 DMG, 0,3 Fire Rate, Range 180
+  - Flammenwerfer: 25 DMG, 0,5 Fire Rate, Beam + 5 DoT
+  - Tesla: 30 DMG, 0,5 Fire Rate, Range 130, Chain
+  - Generator: +33% Buff (non-stacking)
+- ✅ Tower verkaufen (Shift+Click, 75%)
+- ✅ Speed-Toggle (S: 1x/2x)
+- ✅ Wellen-Skalierung: +14% HP/Wave
+- ✅ Intro-Screen: überarbeiteter Text, korrigierter Generator-Buff auf +33%
+- ✅ Scoring-Modal im Intro: sauber, ohne Beispiel-Rechnung
 
-## Nächste offene Themen
+## Zuletzt commitet (13.4.2026 20:45)
+```
+Commit: 05a1a6e
+Message: Intro screen refinements: cleaner UI text, fix generator buff to +33%, remove example calculation
+```
 
-### Prio 1 - Balancing weiter tunen
-- Punkte-System Feintuning auf Basis echter Runs (Gewichtung Kill/Wave/Clear/Gold/Perfection)
-- Level 1 Beginner: Flammenwerfer-Only sollte spätestens Welle 5-6 Probleme machen
-- Level 2 + 3: mit echten externen Testern evaluieren
-- Telemetrie-Daten nutzen: Kills/Leaks/Gold-Ausgaben im Konsolenlog
-- Wellen-Skalierungsfaktor (aktuell 14%) ggf. weiter anpassen
+## Deployment-Live-Status (bestätigt)
+- ✅ Frontend läuft auf Vercel
+- ✅ Backend läuft auf Render (Supabase konfiguriert)
+- ✅ Score-Submit E2E-Test erfolgreich
+- ✅ Supabase Key-Rotation abgeschlossen (secret key aktiv, alter JWT-Key revoked)
+- ✅ CORS & Query-Validation hardening live
+- ✅ Leaderboard live abrufbar
 
-### Prio 2 - Stabilisierung Security/Operations
-- Optional: Replay-Defense explizit live verifizieren (gleiches Token 2x => zweiter Submit muss mit replay fehlschlagen)
-- Optional: bestehende Rate-Limits und Token-TTL anhand echter Nutzung nachjustieren
-- Optional: Monitoring/Alerting fuer Render Logs
+## Nächste offene Themen (priorisiert)
 
-Erledigt am 11. April 2026:
-- Score-Trust hardening ist umgesetzt (serverseitige Score-Verifikation statt blindem Client-Trust)
-- towerUsageByLevel wird streng validiert und normalisiert
+### Prio 1 — Balancing & Gameplay-Feintuning
+- Level 1 Testieren: mit Flammenwerfer-Only bis Welle 5 durchkommen (danach sollte es knackig werden)
+- Level 2 & 3: echte externe Tester feedback sammeln
+- Punkte-Gewichtung Evaluieren: Kill vs Wave vs Clear - sind alle gleichgewichtig genug?
+- Telemetrie durchschauen: Was spielen Nutzer, wo brechen sie ab?
+- Wellen-Skalierung (aktuell +14% HP): nachjustieren falls nötig
 
-Erledigt am 13. April 2026:
-- Supabase Key-Rotation abgeschlossen (secret key aktiv)
-- Alter JWT-basierter service_role Key ist revoked
+### Prio 2 — Performance & Stabilität
+- FirstTimeStart: Performance beim Level-Laden (Assets-Async laden?)
+- Memory: Lange Sessions (20+ Minuten) testen auf Leaks
+- FPS-Monitoring: Ist 60 FPS stabil gehalten auf schwächeren Rechnern?
 
-### Prio 2b - Score-Hardening Post-Release (wenn Spielerkreis wächst)
-- Aktuelles Risiko: Wer die Scoring-Formel kennt (steht im öffentlichen Frontend-Code), kann mathematisch konsistente
-  Fake-Payloads bauen und diese per curl in die Highscore schreiben. HMAC-Auth + Nonce verhindert Replay,
+### Prio 3 — Live-Hardening (wenn mehr Spieler kommen)
+- Replay-Defense live testen (Nonce-Duplikat => 401)
+- Rate-Limits Nachjustierung basierend auf echter Nutzung
+- Monitoring/Alerting Render Logs aufsetzen
+
+### Prio 4 — Nice-to-Have
+- Sound/SFX Prototype (optional, nicht mission-critical)
+- Particles/Juice (optional)
   aber keine inhaltlich gefaketen Runs.
 - Lösung: Server-side Game Simulation oder inkrementelle signierte Events (jeder Kill/jede Welle einzeln
   ans Backend). Größerer Umbau, lohnt sich erst bei echtem Leaderboard-Missbrauch.
