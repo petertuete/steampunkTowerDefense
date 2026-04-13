@@ -17,13 +17,10 @@ export class Enemy {
     const typeKey = config.type || DEFAULT_ENEMY_TYPE;
     const enemyTypeConfig = ENEMY_TYPES[typeKey] || ENEMY_TYPES[DEFAULT_ENEMY_TYPE];
     
-    // Level-Skalierung für Stärke (HP) berechnen (z.B. Level 2 = 1.6x HP)
-    const healthScaleFactor = 1 + (scene.currentLevel.levelNumber - 1) * 0.6;
-
     // Wellen-Skalierung: Jede Welle wird spürbar stärker als die vorherige.
     // currentWaveIndex ist 0-basiert, daher Welle 1 = 1.00x, Welle 2 = 1.14x, ...
     const waveScaleFactor = 1 + (scene.currentWaveIndex || 0) * 0.14;
-    const combinedHealthScale = healthScaleFactor * waveScaleFactor;
+    const combinedHealthScale = waveScaleFactor;
     
     // Gegner-Parameter: Speed bleibt konstant, HP skaliert nach Level und Welle nach oben
     this.speed = config.speed || enemyTypeConfig.speed;

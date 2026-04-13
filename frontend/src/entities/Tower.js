@@ -116,10 +116,7 @@ export class Tower {
       return;
     }
 
-    // Flammwerfer-Nachbrennen: Nur wenn das Ziel den Radius verlässt
-    if (this.isDoT && previousTargetWasValid && !previousTargetInRange) {
-      this.applyFlamethrowerAfterburn(previousTarget);
-    }
+    // Nachbrennen/DoT ist deaktiviert: Flammenwerfer macht nur direkten Beam-Schaden im Radius.
 
     const targetsInRange = this.findTargets(enemies);
     if (targetsInRange.length === 0) {

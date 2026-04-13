@@ -48,8 +48,12 @@ node lernen/backend-mini/server.js
 PORT=3001
 NODE_ENV=development
 ALLOWED_ORIGINS=http://localhost:5173,http://localhost:8000,http://localhost:8080
+RUN_AUTH_SECRET=<long-random-secret>
+RUN_AUTH_TOKEN_TTL_SECONDS=60
 RUNS_RATE_LIMIT_WINDOW_MS=60000
 RUNS_RATE_LIMIT_MAX=30
+CHALLENGE_RATE_LIMIT_WINDOW_MS=60000
+CHALLENGE_RATE_LIMIT_MAX=60
 SUPABASE_URL=https://<your-project>.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=<service-role-key>
 ```

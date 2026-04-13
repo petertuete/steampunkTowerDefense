@@ -60,7 +60,7 @@ const SCORE_RULES = {
 const LEVEL_TOTAL_WAVES_BY_NUMBER = {
   1: 15,
   2: 20,
-  3: 25
+  3: 20
 };
 
 const CAMPAIGN_MAX_LEVEL = Object.keys(LEVEL_TOTAL_WAVES_BY_NUMBER).length;
@@ -255,10 +255,19 @@ app.use(cors({
       return callback(null, true);
     }
 
-    return callback(new Error("CORS blocked: origin not allowed"));
+    const corsError = new Error("CORS blocked: origin not allowed");
+    corsError.code = "CORS_BLOCKED";
+    return callback(corsError);
   }
 }));
 app.use(express.json({ limit: "1mb" }));
+
+app.use((err, req, res, next) => {
+  if (err && err.code === "CORS_BLOCKED") {
+    return res.status(403).json({ error: "CORS blocked: origin not allowed" });
+  }
+  return next(err);
+});
 
 const submitRunsLimiter = rateLimit({
   windowMs: runsRateLimitWindowMs,
@@ -681,7 +690,15 @@ app.get("/api/v1/scores", async (req, res) => {
       });
     }
 
-    const limit = Math.min(100, Math.max(1, Number(req.query.limit || 20)));
+    let limit = 20;
+    if (Object.prototype.hasOwnProperty.call(req.query, "limit")) {
+      const parsedLimit = Number(req.query.limit);
+      if (!Number.isFinite(parsedLimit) || parsedLimit <= 0) {
+        return res.status(400).json({ error: "Ungueltiger limit-Parameter. Erlaubt sind Ganzzahlen von 1 bis 100." });
+      }
+      limit = Math.min(100, Math.max(1, Math.floor(parsedLimit)));
+    }
+
     const { data, error } = await supabase
       .from("game_runs")
       .select("id, player_name, score_points, score_gold, result, selected_level_number, wave_reached, submitted_at")

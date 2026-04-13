@@ -1,8 +1,8 @@
 # Technical Specification — Steampunk Tower Defense
 
-Version: 0.1  
-Datum: 15. März 2026  
-Status: Draft (Release 1 Scope)
+Version: 0.2  
+Datum: 13. April 2026  
+Status: Living document (an aktuellen Implementierungsstand angepasst)
 
 ## 1. Ziel und Zweck
 Diese Spezifikation definiert die technische Umsetzung von Release 1 auf Basis des Game Design Documents.
@@ -21,14 +21,15 @@ Diese Spezifikation definiert die technische Umsetzung von Release 1 auf Basis d
 ## 2. Scope fuer Release 1
 ### In Scope
 - Singleplayer Tower Defense im Browser
-- 3 Level mit 10/15/20 Wellen
-- 6 Turmtypen (ohne Upgrade-System in Release 1)
-- Gegnertypen: normal, gepanzert, schnell, heiler, Zwischenboss (Split), Endboss
-- HUD: Level, Restgegner, Wellen-Timer, Gold
-- Highscore-Upload und Top-100 Anzeige
+- 3 Level mit 15/20/20 Wellen
+- 5 Turmtypen (ohne Upgrade-System in Release 1)
+- Gegnertypen: normal, gepanzert, schnell
+- HUD: Level, Restgegner, Wellen-Timer, Gold, Live-Score
+- Run-Submit und Top-20 Leaderboard
 
 ### Out of Scope (spater)
 - Turm-Upgrades (3 Stufen + Ult)
+- Heiler, Zwischenboss, Split-Mechanik, Endboss
 - Fliegende Gegner
 - Fruehstart der Welle mit Bonusgold
 - Einzigartige Spezialfaehigkeiten pro Turm-Ult
@@ -76,8 +77,8 @@ Diese Spezifikation definiert die technische Umsetzung von Release 1 auf Basis d
 - Vite fuer Dev-Server und Build
 
 ### Backend
-- Node.js + Express fuer Highscore-API
-- SQLite als Datenbank fuer lokale Entwicklung und einfachen Betrieb
+- Node.js + Express fuer Run- und Leaderboard-API
+- Supabase fuer Persistenz von Runs und Tower-Analytics
 
 ### Kommunikation
 - REST/JSON zwischen Game-Client und Score-API
@@ -101,10 +102,9 @@ Diese Spezifikation definiert die technische Umsetzung von Release 1 auf Basis d
 - frontend/src/config/
 - frontend/src/ui/
 - frontend/assets/
-- backend/
-- backend/src/routes/
-- backend/src/services/
-- backend/src/db/
+- lernen/backend-mini/
+- lernen/backend-mini/server.js
+- lernen/backend-mini/supabase.schema.sql
 - shared/ (optional, fuer gemeinsame Typen)
 
 ### Akzeptanzkriterien
@@ -119,12 +119,12 @@ Diese Spezifikation definiert die technische Umsetzung von Release 1 auf Basis d
 
 ## 6. Datenmodelle und Konfigurationen
 ### Kernmodelle
-- TowerDefinition: id, name, baseStats, cost, sellValueRule
-- EnemyDefinition: id, hp, speed, armor, rewardGold, traits, leakDamage, splitConfig
-- WaveDefinition: waveNumber, entries(type, count, interval)
-- LevelDefinition: id, mapId, waveSetId, startGold, startLives
+- TowerDefinition: id, name, baseStats, cost, specialFlags
+- EnemyDefinition: id, hp, speed, rewardGold, leakDamage, traits
+- WaveDefinition: waveNumber, waveString (`n` / `s` / `a` / `.`)
+- LevelDefinition: id, mapId, totalWaves, allowedTowers, startGold, startLives
 - MapDefinition: gridSize(24x16), pathTiles, buildableTiles, blockedTiles
-- ScoreEntry: playerName, scoreGold, createdAt
+- RunEntry: playerName, scorePoints, scoreGold, result, submittedAt
 
 ### Datenquellen
 - JSON oder TS-Configs im frontend/src/config/
@@ -186,13 +186,14 @@ Diese Spezifikation definiert die technische Umsetzung von Release 1 auf Basis d
 
 ## 9. Economy und Progression
 ### Regeln
-- Gold durch Kills (inkl. hoeherer Rewards fuer Zwischenboss/Endboss)
-- Turmverkauf = 50% Rueckerstattung des Kaufpreises
-- Highscore = Restgold nach Abschluss von Level 3
+- Gold durch Kills, mit Level-spezifischem Economy-Tuning
+- Turmverkauf = 75% Rueckerstattung des Kaufpreises
+- Kampagne nutzt kumulatives Score-Gold ueber mehrere Level hinweg
+- Score basiert auf Punkten: Kills, leak-freie Wellen, Level-Clear, Restgold, optionaler Perfection-Multiplikator
 
 ### Akzeptanzkriterien
 - Goldkonto kann nie inkonsistent negativ werden.
-- Highscore-Berechnung nutzt exakt den finalen Goldwert.
+- Score-Berechnung ist client- und serverseitig reproduzierbar.
 
 ### Definition of Done
 - Alle Goldquellen und Goldsenken tabellarisch dokumentiert.
@@ -224,38 +225,42 @@ Diese Spezifikation definiert die technische Umsetzung von Release 1 auf Basis d
 
 ## 11. Highscore API
 ### Endpunkte
-- POST /api/v1/scores
-- GET /api/v1/scores  (fest Top-100, kein limit-Parameter)
+- GET /api/v1/auth/challenge
+- POST /api/v1/runs
+- GET /api/v1/scores (`limit`, Default 20, Maximum 100)
 
 ### Request/Response (konzeptionell)
-- POST Body: playerName, scoreGold
-- GET Response: Liste nach scoreGold absteigend, bei Gleichstand frueherer Timestamp gewinnt
+- Challenge liefert ein kurzlebiges HMAC-Token fuer den naechsten Run-Submit
+- Run-Submit speichert validierten Run inklusive `score_points`, `score_gold` und `towerUsageByLevel`
+- Leaderboard liefert nach `score_points` sortierte Eintraege
 
 ### Validierung
-- playerName: 1-20 Zeichen, nur [A-Za-z0-9 _-], keine reinen Leerzeichen
-- scoreGold: integer >= 0, <= 9999999
+- playerName: 3-10 Zeichen nach Sanitize-Regeln
+- scorePoints und scoreGold muessen zur serverseitigen Berechnung passen
+- towerUsageByLevel wird strikt validiert
 
 ### Akzeptanzkriterien
-- Ungueltige Eingaben liefern definierte Fehlercodes.
-- GET liefert stabile Top-100 Sortierung.
+- Ungueltige Eingaben liefern kontrollierte Fehler.
+- GET liefert stabile Top-20 Default-Sortierung.
 
 ### Definition of Done
 - API-Vertrag dokumentiert (inkl. Fehlerfaelle).
-- DB-Schema fuer Score-Tabelle definiert.
+- DB-Schema fuer Runs und Tower-Analytics definiert.
 
 ---
 
 ## 12. Persistenz und Datenbank
-### SQLite Tabelle
-- scores(id, player_name, score_gold, created_at)
+### Supabase Tabellen
+- game_runs(id, player_name, score_points, score_gold, result, selected_level_number, wave_reached, ...)
+- tower_usage_entries(run_id, level_key, placement_id, tower_type_key, tower_name, grid_x, grid_y, ...)
 
 ### Akzeptanzkriterien
-- Inserts und Reads funktionieren lokal robust.
+- Inserts und Reads funktionieren lokal und online robust.
 - Sortierung und Limit werden DB-seitig umgesetzt.
 
 ### Definition of Done
-- SQL-Migration fuer initiales Schema vorhanden.
-- Index auf score_gold und created_at definiert.
+- SQL-Schema fuer initiales Setup vorhanden.
+- Index auf `score_points` und `submitted_at` definiert.
 
 ---
 
@@ -322,10 +327,10 @@ Diese Spezifikation definiert die technische Umsetzung von Release 1 auf Basis d
 - 1 Level, 2 Turmtypen, 2 Gegnertypen, 3 Wellen, lokaler Score
 
 ### Milestone 2: Release-1 Complete
-- Voller Umfang gemaess GDD
+- 3-Level-Kampagne mit 15/20/20 Wellen, 5 Turmtypen und aktuellem Enemy-Set
 
 ### Milestone 3: Online Highscore
-- API angebunden, Top-10 im Spiel sichtbar
+- API angebunden, Top-20 im Spiel sichtbar
 
 ### Akzeptanzkriterien
 - Jeder Milestone hat messbare Lieferobjekte.

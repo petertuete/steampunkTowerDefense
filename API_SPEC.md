@@ -1,7 +1,7 @@
-# API Specification — Steampunk Tower Defense Highscore API
+# API Specification — BrowserGame Run and Leaderboard API
 
-Version: 1.0  
-Datum: 15. März 2026  
+Version: 1.1  
+Datum: 13. April 2026  
 Base URL lokal: http://localhost:3001/api/v1  
 Base URL online: https://<domain>/api/v1
 
@@ -11,175 +11,187 @@ Base URL online: https://<domain>/api/v1
 
 - Alle Requests und Responses verwenden `Content-Type: application/json`
 - Timestamps im ISO-8601-Format (UTC)
-- Fehlgenannte Felder liefern immer ein einheitliches Error-Objekt
-- API liegt unter `/api/v1/` fuer spaetere Versionierbarkeit
-
-### Einheitliches Error-Response-Format
-```json
-{
-  "error": {
-    "code": "VALIDATION_ERROR",
-    "message": "playerName must only contain alphanumeric characters, spaces, hyphens, or underscores."
-  }
-}
-```
-
-### Fehlercodes
-| Code                  | HTTP-Status | Bedeutung                                   |
-|-----------------------|-------------|---------------------------------------------|
-| VALIDATION_ERROR      | 400         | Eingabe ungueltig                           |
-| MISSING_FIELD         | 400         | Pflichtfeld fehlt                           |
-| RATE_LIMIT_EXCEEDED   | 429         | Zu viele Requests in kurzer Zeit            |
-| INTERNAL_ERROR        | 500         | Serverseitiger Fehler                       |
+- Die API liegt unter `/api/v1/`
+- Fehlerresponses verwenden aktuell ein einfaches Format: `{ "error": "..." }`
 
 ---
 
 ## Endpunkte
 
----
-
-### POST /api/v1/scores
-Score eines Spielers einreichen.
-
-#### Request Body
-```json
-{
-  "playerName": "string",
-  "scoreGold": 0
-}
-```
-
-#### Feldregeln
-| Feld        | Typ     | Pflicht | Regeln                                                                 |
-|-------------|---------|---------|------------------------------------------------------------------------|
-| playerName  | string  | ja      | 1–20 Zeichen, nur: `[A-Za-z0-9 _-]`, keine reinen Leerzeichen-Strings |
-| scoreGold   | integer | ja      | >= 0, <= 9999999 (Plausibilitaetsgrenze)                              |
-
-#### Erfolgs-Response `201 Created`
-```json
-{
-  "id": 42,
-  "playerName": "SteamLord",
-  "scoreGold": 4800,
-  "createdAt": "2026-03-15T14:22:00Z"
-}
-```
-
-#### Fehler-Responses
-| Szenario                         | HTTP | code               |
-|----------------------------------|------|--------------------|
-| Fehlendes Feld                   | 400  | MISSING_FIELD      |
-| Name ungueltige Zeichen          | 400  | VALIDATION_ERROR   |
-| Name zu lang / leer              | 400  | VALIDATION_ERROR   |
-| scoreGold negativ oder zu gross  | 400  | VALIDATION_ERROR   |
-| Zu viele Submits                 | 429  | RATE_LIMIT_EXCEEDED|
-
----
-
-### GET /api/v1/scores
-Top-100 Highscores abrufen, absteigend nach scoreGold sortiert.  
-Bei gleichem scoreGold: frueherer Zeitstempel gewinnt.
-
-#### Query-Parameter
-Keine. Die Liste ist immer auf Top-100 begrenzt.
+### GET /api/v1/health
+Health-Check fuer lokale Entwicklung und Deployment-Pruefung.
 
 #### Erfolgs-Response `200 OK`
 ```json
 {
-  "scores": [
+  "status": "ok",
+  "service": "highscore-api",
+  "environment": "development",
+  "supabaseConfigured": true,
+  "runAuthConfigured": true
+}
+```
+
+---
+
+### GET /api/v1/auth/challenge
+Liefert ein kurzlebiges Run-Auth-Token fuer einen anschliessenden Run-Submit.
+
+#### Erfolgs-Response `200 OK`
+```json
+{
+  "token": "<signed-token>",
+  "expiresInSec": 60
+}
+```
+
+#### Fehler
+- `503`: Run-Auth ist auf dem Backend nicht konfiguriert.
+- `429`: Challenge-Rate-Limit erreicht.
+
+---
+
+### POST /api/v1/runs
+Speichert einen kompletten Run inklusive serverseitig verifizierter Score-Daten und Tower-Nutzung.
+
+#### Header
+- `X-Run-Auth-Token: <token>`
+
+#### Minimal relevanter Request Body
+```json
+{
+  "playerName": "SteamLord",
+  "result": "won",
+  "selectedLevelKey": "level3",
+  "selectedLevelNumber": 3,
+  "waveReached": 20,
+  "totalWaves": 20,
+  "totalKills": 123,
+  "totalLeaks": 0,
+  "totalGoldEarned": 2500,
+  "totalGoldSpent": 1800,
+  "totalGoldRemaining": 700,
+  "livesRemaining": 20,
+  "scoreGold": 700,
+  "scorePoints": 3450,
+  "scoreMeta": {
+    "totalNoLeakWaves": 55,
+    "runHasSoldTower": false,
+    "scoreBreakdown": {
+      "killPoints": 1230,
+      "noLeakWavePoints": 2750,
+      "levelClearPoints": 900,
+      "goldPoints": 700
+    }
+  },
+  "towerUsageByLevel": {
+    "level1": {
+      "levelNumber": 1,
+      "levelName": "Beginner",
+      "placements": []
+    }
+  },
+  "clientVersion": "dev-local"
+}
+```
+
+#### Wichtige Validierung
+- `playerName`: 3-10 Zeichen nach Sanitize-Regeln
+- `scoreMeta` ist Pflicht
+- `scorePoints` muss exakt zur serverseitigen Formel passen
+- `scoreGold` muss zu `goldPoints` passen
+- `towerUsageByLevel` wird strikt validiert und normalisiert
+- Ohne gueltiges `X-Run-Auth-Token` wird der Submit abgelehnt
+
+#### Erfolgs-Response `201 Created`
+```json
+{
+  "ok": true,
+  "run": {
+    "id": 42,
+    "player_name": "SteamLord",
+    "score_points": 3450,
+    "score_gold": 700,
+    "result": "won",
+    "submitted_at": "2026-04-13T12:00:00.000Z"
+  },
+  "placementsSaved": 18
+}
+```
+
+#### Fehler
+- `400`: ungueltige Payload oder unplausible Score-Daten
+- `401`: fehlendes oder ungueltiges Run-Auth-Token
+- `429`: Submit-Rate-Limit erreicht
+- `503`: Supabase oder Run-Auth nicht korrekt konfiguriert
+
+---
+
+### GET /api/v1/scores
+Liefert Leaderboard-Eintraege, standardmaessig Top-20, maximal 100.
+
+#### Query-Parameter
+| Parameter | Typ | Default | Regeln |
+|-----------|-----|---------|--------|
+| `limit` | integer | `20` | min `1`, max `100` |
+
+#### Erfolgs-Response `200 OK`
+```json
+{
+  "items": [
     {
-      "rank": 1,
-      "playerName": "SteamLord",
-      "scoreGold": 4800,
-      "createdAt": "2026-03-15T14:22:00Z"
-    },
-    {
-      "rank": 2,
-      "playerName": "GearMaster",
-      "scoreGold": 4200,
-      "createdAt": "2026-03-14T10:05:00Z"
+      "id": 42,
+      "player_name": "SteamLord",
+      "score_points": 3450,
+      "score_gold": 700,
+      "result": "won",
+      "selected_level_number": 3,
+      "wave_reached": 20,
+      "submitted_at": "2026-04-13T12:00:00.000Z"
     }
   ]
 }
 ```
 
 #### Verhalten
-- Gibt immer ein Array zurueck, auch wenn leer (`"scores": []`)
-- Rang wird serverseitig berechnet und mitgeliefert
+- Sortierung: zuerst `score_points` absteigend, dann `submitted_at` absteigend
+- Response enthaelt immer `items`, auch wenn leer
 - Ein Spieler darf mehrfach in der Liste erscheinen
 
 ---
 
-## Datenbank-Schema
+## Persistenz
 
-### Tabelle: `scores`
-```sql
-CREATE TABLE scores (
-  id          INTEGER PRIMARY KEY AUTOINCREMENT,
-  player_name TEXT    NOT NULL,
-  score_gold  INTEGER NOT NULL,
-  created_at  TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
-);
+### Tabelle `game_runs`
+Speichert den kanonischen Run inklusive `score_points`, `score_gold`, Ergebnis, Telemetrie und `tower_usage_by_level`.
 
-CREATE INDEX idx_scores_gold_time ON scores (score_gold DESC, created_at ASC);
-```
-
----
-
-## Validierungsregeln (Detail)
-
-### playerName
-- Regex: `^[A-Za-z0-9 _-]{1,20}$`
-- Darf nicht ausschliesslich aus Leerzeichen bestehen
-- Wird vor Speicherung getrimmt
-
-### scoreGold
-- Muss ganzzahlig sein (kein Float)
-- Wertebereich: 0 bis 9.999.999
-- Wird serverseitig nicht berechnet — Plausibilitaetsgrenze schuetzt vor offensichtlicher Manipulation
+### Tabelle `tower_usage_entries`
+Speichert flache Placements pro Run fuer spaetere Auswertung.
 
 ---
 
 ## Sicherheit
 
-### Rate-Limiting (POST /api/v1/scores)
-- Max. 5 Score-Submits pro IP-Adresse innerhalb von 60 Sekunden
-- Response bei Ueberschreitung: HTTP 429 mit `Retry-After`-Header
-
-### CORS
-- Lokale Entwicklung: `http://localhost:5173` (Vite-Standard)
-- Produktiv: nur konfigurierte Frontend-Domain als erlaubte Origin
-- CORS-Origin per Umgebungsvariable konfiguriert, nicht hardcoded
-
-### Input-Safety
-- Kein HTML oder Script-Code wird gespeichert oder ausgegeben (Eingabe per Regex beschraenkt)
-- SQL-Injection-Schutz durch ausschliessliche Nutzung von Prepared Statements
+- HMAC-basierte Run-Authentifizierung ueber `RUN_AUTH_SECRET`
+- Nonce-/Replay-Schutz fuer Run-Submits
+- Rate-Limiting fuer Challenge- und Run-Endpunkte
+- CORS ueber `ALLOWED_ORIGINS`
+- Serverseitige Score-Verifikation statt blindem Client-Trust
 
 ---
 
 ## Umgebungsvariablen
 
-| Variable          | Beispielwert                  | Beschreibung                     |
-|-------------------|-------------------------------|----------------------------------|
-| PORT              | 3001                          | Port des Backends                |
-| CORS_ORIGIN       | http://localhost:5173         | Erlaubte Frontend-Origin         |
-| DB_PATH           | ./data/scores.db              | Pfad zur SQLite-Datei            |
-
----
-
-## Beispiel-.env
-```
-PORT=3001
-CORS_ORIGIN=http://localhost:5173
-DB_PATH=./data/scores.db
-```
-
----
-
-## Zukuenftige Erweiterungen (Post-Release)
-| Feature                          | Beschreibung                                      |
-|----------------------------------|---------------------------------------------------|
-| Pagination (GET)                 | `?page=` und `?limit=` Parameter                  |
-| Nur bester Score pro Spieler     | Deduplizierung optional per Query-Parameter       |
-| Spielversion im Score speichern  | `gameVersion`-Feld im POST-Body                  |
-| Admin-Endpunkt zum Loeschen      | Mit API-Key gesichert                             |
+| Variable | Beispielwert | Beschreibung |
+|----------|--------------|--------------|
+| `PORT` | `3001` | Port des Backends |
+| `NODE_ENV` | `development` | Laufzeitmodus |
+| `ALLOWED_ORIGINS` | `http://localhost:5173` | Erlaubte Frontend-Origins |
+| `RUN_AUTH_SECRET` | `<long-random-secret>` | HMAC-Secret fuer Run-Auth |
+| `RUN_AUTH_TOKEN_TTL_SECONDS` | `60` | Token-Lebensdauer |
+| `RUNS_RATE_LIMIT_WINDOW_MS` | `60000` | Zeitfenster fuer Run-Submit-Limits |
+| `RUNS_RATE_LIMIT_MAX` | `30` | Max. Run-Submits pro Fenster |
+| `CHALLENGE_RATE_LIMIT_WINDOW_MS` | `60000` | Zeitfenster fuer Challenge-Limits |
+| `CHALLENGE_RATE_LIMIT_MAX` | `60` | Max. Challenges pro Fenster |
+| `SUPABASE_URL` | `https://<project>.supabase.co` | Supabase-Projekt |
+| `SUPABASE_SERVICE_ROLE_KEY` | `<service-role-key>` | Admin-Key fuer Inserts |

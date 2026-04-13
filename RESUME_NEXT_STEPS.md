@@ -33,8 +33,8 @@ Sprich mich im lockeren Du-Stil an, und ich nenne dich Copilot.
 - Git-Tag fuer Live-Stand vorhanden: v1.0.0-live
 - Neuer Checkpoint-Tag vorhanden: v1.1.0-scoring-live
 
-## Aktueller Funktionsstand (7. April 2026)
-- 3-Level-Kampagne: Beginner / Advanced / Ultimate
+## Aktueller Funktionsstand (13. April 2026)
+- 3-Level-Kampagne: Beginner / Advanced / Ultimate (15 / 20 / 20 Wellen)
 - Auto-Progression nach Level-Abschluss
 - Kumulatives Gold-Scoring (Gold aus vorherigen Levels = Sonderkonto)
 - Jedes neue Level startet mit frischem STARTING_GOLD (400g)
@@ -43,7 +43,7 @@ Sprich mich im lockeren Du-Stil an, und ich nenne dich Copilot.
   - Hochdruck-Kanone: Langstrecken-Projektil
   - Flammenwerfer: Beam-Schaden (kontinuierlich) + Nachbrennen DoT
   - Tesla: Instant-Chain-Blitz, kein Projektil
-  - Generator: +15% Buff (nicht stapelbar)
+  - Generator: +33% Buff (nicht stapelbar)
 - Tower verkaufen per Shift+Linksklick (75%)
 - Sell-Modus-Anzeige im HUD
 - Speed-Toggle S (1x / 2x)
@@ -71,7 +71,6 @@ Sprich mich im lockeren Du-Stil an, und ich nenne dich Copilot.
 - Wellen-Skalierungsfaktor (aktuell 14%) ggf. weiter anpassen
 
 ### Prio 2 - Stabilisierung Security/Operations
-- Service-role key rotation in Supabase (vorsorglich)
 - Optional: Replay-Defense explizit live verifizieren (gleiches Token 2x => zweiter Submit muss mit replay fehlschlagen)
 - Optional: bestehende Rate-Limits und Token-TTL anhand echter Nutzung nachjustieren
 - Optional: Monitoring/Alerting fuer Render Logs
@@ -79,6 +78,10 @@ Sprich mich im lockeren Du-Stil an, und ich nenne dich Copilot.
 Erledigt am 11. April 2026:
 - Score-Trust hardening ist umgesetzt (serverseitige Score-Verifikation statt blindem Client-Trust)
 - towerUsageByLevel wird streng validiert und normalisiert
+
+Erledigt am 13. April 2026:
+- Supabase Key-Rotation abgeschlossen (secret key aktiv)
+- Alter JWT-basierter service_role Key ist revoked
 
 ### Prio 2b - Score-Hardening Post-Release (wenn Spielerkreis wächst)
 - Aktuelles Risiko: Wer die Scoring-Formel kennt (steht im öffentlichen Frontend-Code), kann mathematisch konsistente

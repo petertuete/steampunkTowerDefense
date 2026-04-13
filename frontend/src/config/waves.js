@@ -40,59 +40,54 @@ export const LEVELS = {
     totalWaves: 20,
     allowedTowers: ['steamCannon', 'generator', 'flamethrower'],
     waves: [
-      'n.n.n.n',                // W1:  4n 0s 0a
-      'nnn.nnn',                // W2:  6n 0s 0a
-      'nnn.....s',              // W3:  3n 1s 0a (längere Pause vor S)
-      'n.s.n.s.s',              // W4:  2n 3s 0a (gemischt)
-      'n.s.n.ss.s',             // W5:  2n 4s 0a (gemischt)
-      'n.sss.ss',               // W6:  1n 5s 0a
-      'ssss.a',                 // W7:  4s 1a (erste Armored)
-      'ssss.aa',                // W8:  4s 2a
-      'n.ssss.aa',              // W9:  1n 4s 2a
-      'sssss.aa',               // W10: 5s 2a
-      'n.sssss.aaa',            // W11: 1n 5s 3a
-      'sssss.aaa',              // W12: 5s 3a
-      'n.sssss.aaaa',           // W13: 1n 5s 4a
-      'ssssss.aaaa',            // W14: 6s 4a
-      'aaaaa.....nn.....sssss',         // W15: 2n 5s 5a (Konvergenz)
-      'aaaaaa.....nnn.....ssssss',      // W16: 3n 6s 6a (Konvergenz)
-      'aaaaaa.......nn.......sssssss',  // W17: 2n 7s 6a (Konvergenz)
-      'aaaaaaa.......nnn.......ssssssss',// W18: 3n 8s 7a (Konvergenz)
-      'aaaaaaaa....nnnn...ssssss',      // W19: 4n 6s 8a (kürzere Pause)
-      'aaannn.aassan.aannaass',         // W20: 6n 4s 10a (einzelner Punktabstand)
+      'n.n.n.n',                          // W1:  4n 0s 0a
+      'nnn.nnn.nnn',                      // W2:  9n 0s 0a
+      'nnnnnnnnn',                        // W3:  9n 0s 0a
+      'n.s.n.s.n',                        // W4:  3n 2s 0a
+      'n.ss.n.ss.ns',                     // W5:  3n 6s 0a
+      'nnsss.nnsss',                      // W6:  4n 6s 0a
+      'nn.a.nn',                          // W7:  4n 0s 1a
+      'nn.aa.nn',                         // W8:  4n 0s 2a
+      'n.aaa.aaa',                        // W9:  1n 0s 6a
+      'aaa.aaa.aaa',                      // W10: 0n 0s 9a
+      'ss.nn.aa.sna',                     // W11: 3n 3s 3a
+      'nsa.nnssaa.nsa',                   // W12: 5n 4s 4a
+      'nnn.sss.aaa.nnn',                  // W13: 6n 3s 3a
+      'a.n.s..aa.nn.ss..ans',             // W14: 4n 4s 4a
+      'aaaaaaaaaa',                       // W15: 0n 0s 10a
+      'aaaannnnaa',                        // W16: 4n 0s 6a
+      'aaannaaaaann',                      // W17: 2n 0s 9a
+      'aaaaansaaaaans',                    // W18: 0n 2s 10a
+      'aanaanaanaanaan',                   // W19: 6n 0s 8a
+      'aaaaannaaaaassaaaaa',              // W20: 7n 2s 10a
     ]
   },
   level3: {
     levelNumber: 3,
     displayName: 'Ultimate',
-    totalWaves: 25,
+    totalWaves: 20,
     allowedTowers: ['steamCannon', 'generator', 'flamethrower', 'Tesla'],
     waves: [
-      'nnnn.s',                      // W1:  4n 1s
-      'nnnnn.s',                     // W2:  5n 1s
-      'nnnn.ss.a',                   // W3:  4n 2s 1a
-      'nnnn.sss.a',                  // W4:  4n 3s 1a
-      'nnn.sss.aa',                  // W5:  3n 3s 2a
-      'nnn.ssss.aa',                 // W6:  3n 4s 2a
-      'nn.ssss.aaa',                 // W7:  2n 4s 3a
-      'nn.sssss.aaa',                // W8:  2n 5s 3a
-      'n.sssss.aaaa',                // W9:  1n 5s 4a
-      'n.ssssss.aaaa',               // W10: 1n 6s 4a
-      'n.ssssss.aaaaa',              // W11: 1n 6s 5a
-      'sssssss.aaaaa',               // W12: 7s 5a
-      'n.ssssss.aaaaaa',             // W13: 1n 6s 6a
-      'sssssss.aaaaaa',              // W14: 7s 6a
-      'n.sssssss.aaaaaa',            // W15: 1n 7s 6a
-      'ssssssss.aaaaaa',             // W16: 8s 6a
-      'n.sssssss.aaaaaaa',           // W17: 1n 7s 7a
-      'ssssssss.aaaaaaa',            // W18: 8s 7a
-      'n.ssssssss.aaaaaaa',          // W19: 1n 8s 7a
-      'sssssssss.aaaaaaa',           // W20: 9s 7a
-      'n.ssssssss.aaaaaaaa',         // W21: 1n 8s 8a
-      'sssssssss.aaaaaaaa',          // W22: 9s 8a
-      'n.sssssssss.aaaaaaaa',        // W23: 1n 9s 8a
-      'ssssssssss.aaaaaaaa',         // W24: 10s 8a
-      'ssssssssss.aaaaaaaaaa',       // W25: 10s 10a (finale)
+      'n.n.n.nn',                      // W1:  5n 0s 0a
+      'nnn.nnn.nnn',                  // W2:  9n 0s 0a
+      'nnnnn.nnnn.n',                 // W3:  10n 0s 0a
+      's.s.s.s.s.s.s.s',              // W4:  0n 8s 0a
+      'sss.sss',                      // W5:  0n 6s 0a
+      'ss.nn.ss.nn.ss',               // W6:  4n 6s 0a
+      'nnn.a.nnn',                    // W7:  6n 0s 1a
+      'nn.nnn.a.aa.aaa',              // W8:  5n 0s 6a
+      'aa.nn.aa.nn.aa',               // W9:  4n 0s 6a
+      'sss.aaa.aa.a',                 // W10: 0n 3s 6a
+      'sss.aaa.sss.a',                // W11: 0n 6s 4a
+      'aaa.s.ss.aaa.sss',             // W12: 0n 6s 6a
+      'sna.san.nas.nsa',              // W13: 4n 4s 4a
+      'nas.nsa.asn.ans',              // W14: 4n 4s 4a
+      'ans..ans.ans.ansans',          // W15: 6n 5s 5a
+      'nnnss.nnsss.nnnsss',           // W16: 8n 7s 0a
+      'aaans.aaasn.aaaaa',            // W17: 2n 2s 11a
+      'aaaaannnnn.aaannn',            // W18: 8n 0s 8a
+      'ansansansansansans',           // W19: 6n 6s 6a
+      'aaaasaaaaaaasaaaaaaa',         // W20: 0n 2s 18a
     ]
   }
 };

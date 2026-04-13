@@ -1,7 +1,7 @@
 # Umsetzungsstrategie
 
-Version: 0.1  
-Datum: 15. Maerz 2026  
+Version: 0.2  
+Datum: 13. April 2026  
 Bezug: GDD, Technical Spec, API Spec, Asset Spec
 
 ## 1. Zielbild
@@ -21,7 +21,7 @@ Dauer: 0.5 Tag
 
 Lieferumfang:
 - Frontend (Vite + Phaser) lokal startbar
-- Backend (Express + SQLite) lokal startbar
+- Backend (Express + Supabase-Anbindung) lokal startbar
 - Basis-Ordnerstruktur gemaess Technical Spec
 - Konfigurierbare API-URL und CORS
 
@@ -47,22 +47,22 @@ Abnahme:
 Dauer: 5 bis 7 Tage
 
 Lieferumfang:
-- Vollstaendige 3 Level mit 10/15/20 Wellen
-- Alle 6 Turmtypen
-- Alle Gegnertypen inkl. Heiler
-- Zwischenboss-Split und Endboss
+- Vollstaendige 3 Level mit 15/20/20 Wellen
+- 5 Turmtypen im Release-1 Scope
+- Gegnertypen normal, schnell und gepanzert
+- Kampagnen-Progression, Speed-Toggle und Score-System
 - Turm-Upgrades bleiben Post-Release
 
 Abnahme:
-- Leak-Schaden korrekt (-1/-5/-20)
-- Zwischenboss-Split reproduzierbar
+- Leak-Schaden korrekt pro Gegnertyp
 - Win/Lose-Bedingungen stabil
+- Kampagnen-Fortschritt ohne Softlock
 
 ### Milestone 3: UI/UX und Highscore Final
 Dauer: 2 bis 3 Tage
 
 Lieferumfang:
-- Top-100 Anzeige im Spiel
+- Top-20 Anzeige im Spiel
 - Namenseingabe am Run-Ende
 - Nutzerfeedback bei Fehlerfaellen
 - Basis-SFX integriert
@@ -115,6 +115,6 @@ Abnahme:
 
 ## 7. Definition of Done fuer Release 1
 - Alle In-Scope Features aus den Specs implementiert
-- Top-100 Highscore Ende-zu-Ende funktional
+- Top-20 Highscore Ende-zu-Ende funktional
 - Keine kritischen Gameplay-Blocker
 - Lokales Setup stabil und online-faehig vorbereitet

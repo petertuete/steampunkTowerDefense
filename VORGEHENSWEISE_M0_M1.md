@@ -100,4 +100,4 @@ Pro Task immer dieselben 5 Fragen:
 - Score gespeichert und als Top-Liste geladen werden kann
 
 ## 10. Naechster Schritt nach diesen Milestones
-Nach Milestone 1 wird der Umfang auf den kompletten Release-1 Scope ausgebaut (alle Tuerme, alle Gegner, 3 Level, Top-100 und Stabilisierung).
+Nach Milestone 1 wird der Umfang auf den kompletten Release-1 Scope ausgebaut (alle Tuerme, aktuelles Gegner-Set, 3 Level, Top-20 und Stabilisierung).

@@ -385,31 +385,33 @@ export default class GameScene extends Phaser.Scene {
       fontStyle: 'bold'
     });
 
-    // Level-Auswahl (HUD)
+    // Level-Auswahl (nur im Debug-Modus sichtbar)
     const levelLabelX = 760;
-    this.add.text(levelLabelX, 10, 'Level:', {
-      fontSize: '12px',
-      fill: '#cccccc',
-      fontFamily: 'Courier'
-    });
-
     this.levelButtons = {};
-    const availableLevelKeys = Object.keys(LEVELS).sort((a, b) => LEVELS[a].levelNumber - LEVELS[b].levelNumber);
-    let nextLevelButtonX = levelLabelX + 52;
-    availableLevelKeys.forEach((levelKey) => {
-      const levelName = LEVELS[levelKey].displayName || `Level ${LEVELS[levelKey].levelNumber}`;
-      const btn = this.add.text(nextLevelButtonX, 10, `[${levelName}]`, {
+    if (this.debugMode) {
+      this.add.text(levelLabelX, 10, 'Level:', {
         fontSize: '12px',
-        fill: '#999999',
-        fontFamily: 'Courier',
-        fontStyle: 'bold'
-      }).setInteractive({ useHandCursor: true });
+        fill: '#cccccc',
+        fontFamily: 'Courier'
+      });
 
-      btn.on('pointerdown', () => this.switchLevel(levelKey));
-      this.levelButtons[levelKey] = btn;
-      nextLevelButtonX += btn.width + 16;
-    });
-    this.updateLevelSelectorUI();
+      const availableLevelKeys = Object.keys(LEVELS).sort((a, b) => LEVELS[a].levelNumber - LEVELS[b].levelNumber);
+      let nextLevelButtonX = levelLabelX + 52;
+      availableLevelKeys.forEach((levelKey) => {
+        const levelName = LEVELS[levelKey].displayName || `Level ${LEVELS[levelKey].levelNumber}`;
+        const btn = this.add.text(nextLevelButtonX, 10, `[${levelName}]`, {
+          fontSize: '12px',
+          fill: '#999999',
+          fontFamily: 'Courier',
+          fontStyle: 'bold'
+        }).setInteractive({ useHandCursor: true });
+
+        btn.on('pointerdown', () => this.switchLevel(levelKey));
+        this.levelButtons[levelKey] = btn;
+        nextLevelButtonX += btn.width + 16;
+      });
+      this.updateLevelSelectorUI();
+    }
 
     // Skip-Button (nur während wave-pause sichtbar)
     this.skipWaveBtn = this.add.text(950, 40, '[ ▶ JETZT STARTEN ] [Space]', {

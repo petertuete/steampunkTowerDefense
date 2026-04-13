@@ -50,7 +50,7 @@ Legende: ✅ erledigt | ❌ entfernt/entfallen | ⏳ offen
 ## Milestone 2: Core Gameplay Complete
 
 32. ✅ P0: 3 Level anlegen (Beginner/Advanced/Ultimate)
-33. ✅ P0: WaveSets fuer 15/20/25 Wellen
+33. ✅ P0: WaveSets fuer 15/20/20 Wellen
 34. ✅ P0: Gegnertyp gepanzert (armored)
 35. ❌ P0: Gegnertyp heiler (Post-Release)
 36. ❌ P0: Zwischenboss (Post-Release)
@@ -73,7 +73,7 @@ Legende: ✅ erledigt | ❌ entfernt/entfallen | ⏳ offen
 
 ## Milestone 3: UI/UX und Highscore Final
 
-50. ✅ P0: Highscore-Ansicht (Top-10) im Frontend
+50. ✅ P0: Highscore-Ansicht (Top-20) im Frontend
 51. ✅ P0: Sortierung und Ranking visualisiert
 52. ✅ P1: Validierungsfehler fuer playerName
 53. ✅ P1: Feedback bei ungueltiger Turmplatzierung
@@ -86,8 +86,9 @@ Legende: ✅ erledigt | ❌ entfernt/entfallen | ⏳ offen
 
 58. ✅ P0: API Input-Validierung serverseitig umgesetzt
 59. ✅ P0: Rate-Limiting auf Score-POST
-59a. ⏳ P0: Score-Trust hardening (Client-Score serverseitig verifizieren oder neu berechnen)
-59b. ⏳ P0: towerUsageByLevel serverseitig strikt validieren (Schema/Bounds/Unknown-Fields)
+59a. ✅ P0: Score-Trust hardening (Client-Score serverseitig verifizieren oder neu berechnen)
+59b. ✅ P0: towerUsageByLevel serverseitig strikt validieren (Schema/Bounds/Unknown-Fields)
+59c. ✅ P0: Supabase Key-Rotation abgeschlossen (secret key aktiv, alter JWT-Key revoked)
 60. ✅ P0: SQL-Injection-Risiko minimiert (Supabase Client Inserts)
 61. ✅ P1: Smoke-Testliste ausgefuehrt (lokal + deployed)
 62. ✅ P1: Edge Cases Basisvalidierung getestet
@@ -107,8 +108,8 @@ Legende: ✅ erledigt | ❌ entfernt/entfallen | ⏳ offen
 ## Empfohlene Reihenfolge naechste Session
 1. Balancing Level 2/3 mit externen Tester-Daten feinjustieren
 2. Punkte-System Feintuning (Scoring-Gewichte auf Basis echter Runs justieren)
-3. Score-Trust hardening: Client-Score nicht mehr als Wahrheit behandeln
-4. towerUsageByLevel serverseitig strikt validieren
-5. Supabase service-role key rotieren und in Render aktualisieren
-6. Rate-Limits/Token-TTL anhand echter Nutzung nachjustieren
+3. Rate-Limits/Token-TTL anhand echter Nutzung nachjustieren
+4. Performance-Pass fuer hohe Gegnerdichte
+5. Platzhalter-UI-Icons und Basis-SFX integrieren
+6. Secret-Rotation-Prozess kurz dokumentieren (Runbook)
 7. Grafik-/Asset-Phase planen

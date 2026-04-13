@@ -35,7 +35,7 @@ Aus dem Day-1-Setup ist ein deploytes Spiel geworden:
 2. Highscore und Daten
 - Nameingabe am Endscreen (3-10 Zeichen)
 - Score-Submit ans Backend
-- Top-10 Leaderboard am Endscreen
+- Top-20 Leaderboard am Endscreen
 - Tower-Usage-Analytics pro Level gespeichert
 
 3. Backend/Security

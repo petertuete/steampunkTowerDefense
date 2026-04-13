@@ -20,7 +20,8 @@ Die API ist nicht mehr nur lokal, aber auch noch kein voll abgesicherter Product
 - [x] Live-Deployment laeuft ueber HTTPS
 - [x] CORS ist eingeschraenkt und konfigurierbar
 - [x] Run-Submits brauchen HMAC-Challenge-Token
-- [ ] Secret-Rotation und Incident-Prozess dokumentieren
+- [x] Erste Key-Rotation abgeschlossen (secret key aktiv, alter JWT-Key revoked)
+- [ ] Rotation als wiederholbarer Incident-/Runbook-Prozess dokumentieren
 
 ### 4. Input Validation (Server-Side)
 - [x] playerName: 3-10 Zeichen, serverseitig geprueft
@@ -43,7 +44,8 @@ Die API ist nicht mehr nur lokal, aber auch noch kein voll abgesicherter Product
 ✅ Request-Body-Limit aktiv  
 ✅ HMAC-Auth fuer Run-Submit aktiv  
 ✅ Input-Validation und generische Fehlerantworten aktiv  
-⚠️ Secret-Rotation / Monitoring / weitergehende Abuse-Defense offen
+✅ Supabase Key-Rotation auf secret key abgeschlossen, alter JWT-Key revoked
+⚠️ Monitoring / weitergehende Abuse-Defense offen
 ⚠️ Score-Faking durch konsistente Fake-Payloads möglich (kein Server-side Replay der Spiellogik)
    → Akzeptiertes Risiko für Hobby-Betrieb. Fix: inkrementelle signierte Events oder Server-Simulation.  
 
@@ -55,4 +57,4 @@ Die API ist nicht mehr nur lokal, aber auch noch kein voll abgesicherter Product
 
 ---
 
-*Zuletzt aktualisiert: 9. April 2026*
+*Zuletzt aktualisiert: 13. April 2026*

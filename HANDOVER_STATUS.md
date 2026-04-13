@@ -1,6 +1,6 @@
 # Handover Status - BrowserGame
 
-Datum: 7. April 2026
+Datum: 13. April 2026
 
 ## Projektziel
 Steampunk Pixel-Art Tower Defense als spec-driven Vibe-Coding-Projekt, zuerst lokal kostenlos, spaeter onlinefaehig.
@@ -8,7 +8,7 @@ Steampunk Pixel-Art Tower Defense als spec-driven Vibe-Coding-Projekt, zuerst lo
 ## Aktueller Realstand
 3-Level-Kampagne spielbar, Highscore-Pipeline produktiv online, Deployment live (Frontend + Backend), Security-Hardening umgesetzt.
 
-Implementiert (Stand 5. April 2026):
+Implementiert (Stand 13. April 2026):
 - Grid + Pfad-Visualisierung (Startfeld grün, Zielfeld rot, Pfad grau)
 - Enemy-Movement entlang Wegpunkten (deltaTime-basiert)
 - Tower-Placement (Linksklick), Tower-Verkauf (Shift+Linksklick, 75% Rückgeld)
@@ -18,7 +18,7 @@ Implementiert (Stand 5. April 2026):
 - Flammenwerfer: kontinuierlicher Beam-Schaden (rote Linie) + Nachbrennen (DoT) beim Radius-Verlassen
 - Tesla: Instant-Chain-Lightning (kein Projektil), blauer Blitz-Schuss-Flash, Primärblitz nur wenn Ziel überlebt
 - Tesla-Kettensymbol/Blitz auch bei Hop-Gegnern nur wenn beide alive
-- Generator-Buff: +15% Damage, nicht stapelbar (maximal 1 Generator pro Turm)
+- Generator-Buff: +33% Damage, nicht stapelbar (maximal 1 Generator pro Turm)
 - Mörser ENTFERNT (kein Gameplay-Nutzen)
 - Damage + Kill + Gold-Reward
 - Wave-System als String-Notation (n/s/a/.) fuer feingranulare Spawn-Choreografie
@@ -29,7 +29,7 @@ Implementiert (Stand 5. April 2026):
 - Cursor-Preview für Tower-Platzierung (crosshair / not-allowed bei Shift)
 - Enemy-Healthbars
 - Run-Telemetrie: Kills, Leaks, Gold-Einnahmen/Ausgaben, Tower-Nutzung
-- 3-Level-Kampagne: Beginner (15 Wellen), Advanced (20 Wellen), Ultimate (25 Wellen)
+- 3-Level-Kampagne: Beginner (15 Wellen), Advanced (20 Wellen), Ultimate (20 Wellen)
 - Automatische Level-Progression nach Abschluss
 - Kumulatives Gold-Scoring: Gold aus alten Levels → Sonderkonto, neues Level mit frischem STARTING_GOLD
 - Level-Selector im HUD ([Beginner] [Advanced] [Ultimate])
@@ -41,7 +41,7 @@ Implementiert (Stand 5. April 2026):
 - Speed-Toggle per Taste S (1x / 2x)
 - Tower.destroy() idempotent und null-safe
 - Endscreen-Nameingabe + Score-Submit an Backend
-- Top-10 Leaderboard im Endscreen (Win + Game Over)
+- Top-20 Leaderboard im Endscreen (Win + Game Over)
 - Tower-Nutzungsanalyse pro Level inkl. Grid/Screen-Koordinaten
 - Level-2 Geometrie auf Zickzack-Pfad umgestellt
 - Level-2 Economy-Tuning: doppelter Gold-Reward pro Kill
@@ -99,7 +99,7 @@ Wichtig:
 ## Verifizierter Zustand am Ende dieses Tages
 - 3-Level-Kampagne komplett spielbar inkl. Auto-Progression
 - Kumulatives Scoring korrekt (Gold aus Level 1+2+3 im Endscore)
-- Highscore-Submit live inkl. Nameingabe und Top-10 Anzeige
+- Highscore-Submit live inkl. Nameingabe und Top-20 Anzeige
 - Tower-Usage-Analytics in DB gespeichert
 - Level-2 Pfad + Economy erfolgreich nachgetuned
 - Wave-System auf n/s/a/. umgestellt und laeuft
@@ -135,7 +135,7 @@ In Scope (v1):
 - 3-Level-Kampagne mit Auto-Progression und kumulativem Scoring
 - Wave-/Level-Gameplay, Leben/Gold/HUD, Win/Lose + Neustart
 - Balancing-Tracking (Kills, Leaks, Gold, Turm-Nutzung)
-- Highscore-API bleibt technisch vorbereitet
+- Produktive Run-Submit- und Leaderboard-API
 
 Out of Scope (Post-Release):
 - Turm-Upgrades (3 Stufen + Ult)
@@ -149,8 +149,11 @@ Merksatz fuer Folge-Sessions:
 1. Balancing-Feintuning Level 2/3 auf Basis echter Tester-Runs
 2. Optional: bestehende Rate-Limits / Challenge-TTL auf Basis echter Nutzung nachjustieren
 3. Optional: Tester-Feedback-Loop aufsetzen (Formular + Auswertung)
-4. Supabase service-role key vorsorglich rotieren
-5. Post-Release Backlog unveraendert: Turm-Upgrades + Upgrade-UI
+4. Post-Release Backlog unveraendert: Turm-Upgrades + Upgrade-UI
+
+Erledigt am 13. April 2026:
+- Supabase Key-Rotation abgeschlossen (secret key aktiv)
+- Alter JWT-basierter service_role Key ist revoked
 
 ## Kommunikationsstil (User-Praeferenz)
 - Ansprache: Copilot
