@@ -16,6 +16,14 @@ const SCORE_RULES = {
   PERFECTION_MULTIPLIER: 1.5
 };
 
+const UI_TITLE_FONT = 'Georgia';
+const UI_BODY_FONT = 'Courier';
+const UI_BRASS = 0xd0ac74;
+const UI_BRASS_SOFT = 0xf3ddb3;
+const UI_PANEL_BRASS = 0x2a1e14;
+const UI_GLASS = 0x101721;
+const UI_OVERLAY = 0x000000;
+
 /**
  * GameScene - Hauptszene des Spiels
  * 
@@ -296,8 +304,17 @@ export default class GameScene extends Phaser.Scene {
     // Text-Info (HUD, oben außerhalb des Spielfelds)
     // Hintergrund für bessere Lesbarkeit
     const hudBackground = this.make.graphics({ x: 0, y: 0, add: true });
-    hudBackground.fillStyle(0x000000, 0.7);
+    hudBackground.fillStyle(UI_PANEL_BRASS, 0.94);
     hudBackground.fillRect(0, 0, this.scale.width, this.HUD_HEIGHT);
+    hudBackground.lineStyle(2, UI_BRASS, 0.55);
+    hudBackground.beginPath();
+    hudBackground.moveTo(0, this.HUD_HEIGHT - 1);
+    hudBackground.lineTo(this.scale.width, this.HUD_HEIGHT - 1);
+    hudBackground.strokePath();
+    hudBackground.fillStyle(UI_GLASS, 0.36);
+    hudBackground.fillRect(8, 8, this.scale.width - 16, this.HUD_HEIGHT - 16);
+    hudBackground.lineStyle(1, UI_BRASS_SOFT, 0.14);
+    hudBackground.strokeRect(8, 8, this.scale.width - 16, this.HUD_HEIGHT - 16);
 
     // Wave-Preview Graphic (rechts neben Wellen-Info)
     this.wavePreviewGraphics = this.make.graphics({ x: 0, y: 0, add: true });
@@ -305,34 +322,34 @@ export default class GameScene extends Phaser.Scene {
 
     this.infoText = this.add.text(10, 8, 'Gegner: 0', {
       fontSize: '12px',
-      fill: '#00ff00',
-      fontFamily: 'Courier'
+      fill: '#d8cab6',
+      fontFamily: UI_BODY_FONT
     });
 
     this.goldText = this.add.text(300, 8, `Gold: ${this.gold}`, {
       fontSize: '14px',
-      fill: '#ffff00',
-      fontFamily: 'Courier',
+      fill: '#f3d289',
+      fontFamily: UI_BODY_FONT,
       fontStyle: 'bold'
     });
 
     this.scoreText = this.add.text(300, 24, `Score: ${this.getTotalScorePoints()} pts`, {
       fontSize: '13px',
-      fill: '#ffd966',
-      fontFamily: 'Courier',
+      fill: '#eed5a7',
+      fontFamily: UI_BODY_FONT,
       fontStyle: 'bold'
     });
 
     this.towerText = this.add.text(10, 24, `Türme: 0 | ${this.selectedTowerType.name} (${this.selectedTowerType.cost}g)`, {
       fontSize: '12px',
-      fill: '#ff88ff',
-      fontFamily: 'Courier'
+      fill: '#e6d4c1',
+      fontFamily: UI_BODY_FONT
     });
 
     this.towerSwitchFxText = this.add.text(10, 40, '', {
       fontSize: '11px',
-      fill: '#00ffff',
-      fontFamily: 'Courier',
+      fill: '#f0e4cf',
+      fontFamily: UI_BODY_FONT,
       fontStyle: 'bold'
     }).setAlpha(0);
 
@@ -351,37 +368,37 @@ export default class GameScene extends Phaser.Scene {
 
     this.add.text(10, 96, 'Click je nach Modus | 1/2/3/4 Turmwahl | T wechseln | Shift = Verkauf | S Speed', {
       fontSize: '11px',
-      fill: '#888888',
-      fontFamily: 'Courier'
+      fill: '#b7ad9c',
+      fontFamily: UI_BODY_FONT
     });
 
     // Leben-Anzeige
     this.livesText = this.add.text(600, 8, `Leben: ${this.lives}`, {
       fontSize: '14px',
-      fill: '#ff4444',
-      fontFamily: 'Courier',
+      fill: '#df9b85',
+      fontFamily: UI_BODY_FONT,
       fontStyle: 'bold'
     });
 
     // Wellen-Anzeige
     this.waveText = this.add.text(600, 24, `Welle: ${this.currentWaveIndex + 1}/${this.currentLevel.totalWaves}`, {
       fontSize: '14px',
-      fill: '#44ff44',
-      fontFamily: 'Courier',
+      fill: '#d8cab6',
+      fontFamily: UI_BODY_FONT,
       fontStyle: 'bold'
     });
 
     // Wellen-Timer
     this.waveTimerText = this.add.text(600, 40, 'Welle läuft...', {
       fontSize: '12px',
-      fill: '#ffff44',
-      fontFamily: 'Courier'
+      fill: '#e7ddcc',
+      fontFamily: UI_BODY_FONT
     });
 
     this.speedText = this.add.text(600, 56, 'Speed: 1x [S]', {
       fontSize: '12px',
-      fill: '#66ccff',
-      fontFamily: 'Courier',
+      fill: '#d8cab6',
+      fontFamily: UI_BODY_FONT,
       fontStyle: 'bold'
     });
 
@@ -391,8 +408,8 @@ export default class GameScene extends Phaser.Scene {
     if (this.debugMode) {
       this.add.text(levelLabelX, 10, 'Level:', {
         fontSize: '12px',
-        fill: '#cccccc',
-        fontFamily: 'Courier'
+        fill: '#d8d2c6',
+        fontFamily: UI_BODY_FONT
       });
 
       const availableLevelKeys = Object.keys(LEVELS).sort((a, b) => LEVELS[a].levelNumber - LEVELS[b].levelNumber);
@@ -401,8 +418,8 @@ export default class GameScene extends Phaser.Scene {
         const levelName = LEVELS[levelKey].displayName || `Level ${LEVELS[levelKey].levelNumber}`;
         const btn = this.add.text(nextLevelButtonX, 10, `[${levelName}]`, {
           fontSize: '12px',
-          fill: '#999999',
-          fontFamily: 'Courier',
+          fill: '#b8ab93',
+          fontFamily: UI_BODY_FONT,
           fontStyle: 'bold'
         }).setInteractive({ useHandCursor: true });
 
@@ -416,15 +433,15 @@ export default class GameScene extends Phaser.Scene {
     // Skip-Button (nur während wave-pause sichtbar)
     this.skipWaveBtn = this.add.text(950, 40, '[ ▶ JETZT STARTEN ] [Space]', {
       fontSize: '13px',
-      fill: '#ffffff',
-      fontFamily: 'Courier',
+      fill: '#fff3d8',
+      fontFamily: UI_BODY_FONT,
       fontStyle: 'bold',
-      backgroundColor: '#005500',
+      backgroundColor: '#5a3d24',
       padding: { x: 10, y: 6 }
     }).setOrigin(0.5).setInteractive({ useHandCursor: true }).setVisible(false);
 
-    this.skipWaveBtn.on('pointerover', () => this.skipWaveBtn.setStyle({ fill: '#ffff00' }));
-    this.skipWaveBtn.on('pointerout', () => this.skipWaveBtn.setStyle({ fill: '#ffffff' }));
+    this.skipWaveBtn.on('pointerover', () => this.skipWaveBtn.setStyle({ fill: '#fff8e6', backgroundColor: '#6d4a2b' }));
+    this.skipWaveBtn.on('pointerout', () => this.skipWaveBtn.setStyle({ fill: '#fff3d8', backgroundColor: '#5a3d24' }));
     this.skipWaveBtn.on('pointerdown', () => {
       if (!this.isPaused && this.gameState === 'wave-pause') {
         this.wavePauseTimer = 0;
@@ -646,7 +663,7 @@ export default class GameScene extends Phaser.Scene {
 
     Object.entries(this.levelButtons).forEach(([levelKey, button]) => {
       const isActive = levelKey === this.selectedLevelKey;
-      button.setStyle({ fill: isActive ? '#ffff66' : '#999999' });
+      button.setStyle({ fill: isActive ? '#f3d289' : '#b8ab93' });
     });
   }
 
@@ -671,15 +688,15 @@ export default class GameScene extends Phaser.Scene {
 
     this.modeBuildLabel = this.add.text(x - HALF + PADDING_X, y, '+ Bauen', {
       fontSize: '12px',
-      fill: '#d7e2f0',
-      fontFamily: 'Courier',
+      fill: '#e8dcc8',
+      fontFamily: UI_BODY_FONT,
       fontStyle: 'bold'
     }).setOrigin(0, 0.5).setDepth(122);
 
     this.modeSellLabel = this.add.text(x + PADDING_X, y, '$ Verkaufen', {
       fontSize: '12px',
-      fill: '#d7e2f0',
-      fontFamily: 'Courier',
+      fill: '#e8dcc8',
+      fontFamily: UI_BODY_FONT,
       fontStyle: 'bold'
     }).setOrigin(0, 0.5).setDepth(122);
 
@@ -763,30 +780,30 @@ export default class GameScene extends Phaser.Scene {
     const leftActiveBlend = 1 - this.modeVisualSellRatio;
     const rightActiveBlend = this.modeVisualSellRatio;
 
-    const leftColor = this.mixColor(0x1f2430, 0x2f7a4f, leftActiveBlend);
+    const leftColor = this.mixColor(0x1f1a16, 0x5b6a4c, leftActiveBlend);
     const rightActiveColor = isShiftOverride ? 0xaa6633 : 0x8a3d3d;
-    const rightColor = this.mixColor(0x1f2430, rightActiveColor, rightActiveBlend);
+    const rightColor = this.mixColor(0x1f1a16, rightActiveColor, rightActiveBlend);
 
     const leftAlpha = hoveredSegment === 'build' && leftActiveBlend < 0.95 ? 0.9 : 1;
     const rightAlpha = hoveredSegment === 'sell' && rightActiveBlend < 0.95 ? 0.9 : 1;
 
     this.modeToggleBg.clear();
-    this.modeToggleBg.fillStyle(0x151922, 1);
+    this.modeToggleBg.fillStyle(0x2a1e14, 1);
     this.modeToggleBg.fillRoundedRect(leftX, y - height / 2, width, height, 6);
     this.modeToggleBg.fillStyle(leftColor, leftAlpha);
     this.modeToggleBg.fillRoundedRect(leftX + 2, y - height / 2 + 2, half - 3, height - 4, 4);
     this.modeToggleBg.fillStyle(rightColor, rightAlpha);
     this.modeToggleBg.fillRoundedRect(rightX + 1, y - height / 2 + 2, half - 3, height - 4, 4);
-    this.modeToggleBg.lineStyle(2, 0x4a5263, 1);
+    this.modeToggleBg.lineStyle(2, UI_BRASS, 0.85);
     this.modeToggleBg.strokeRoundedRect(leftX, y - height / 2, width, height, 6);
-    this.modeToggleBg.lineStyle(1, 0x39404f, 1);
+    this.modeToggleBg.lineStyle(1, UI_BRASS_SOFT, 0.28);
     this.modeToggleBg.beginPath();
     this.modeToggleBg.moveTo(x, y - height / 2 + 2);
     this.modeToggleBg.lineTo(x, y + height / 2 - 2);
     this.modeToggleBg.strokePath();
 
-    this.modeBuildLabel.setStyle({ fill: leftActiveBlend > 0.5 ? '#ffffff' : '#c7d0de' });
-    this.modeSellLabel.setStyle({ fill: rightActiveBlend > 0.5 ? '#ffffff' : '#c7d0de' });
+    this.modeBuildLabel.setStyle({ fill: leftActiveBlend > 0.5 ? '#fff3d8' : '#d6c8b1' });
+    this.modeSellLabel.setStyle({ fill: rightActiveBlend > 0.5 ? '#fff3d8' : '#d6c8b1' });
     if (isShiftOverride) {
       this.modeSellLabel.setText('$ Verkaufen*');
     } else {
@@ -806,9 +823,9 @@ export default class GameScene extends Phaser.Scene {
 
     if (this.speedText) {
       this.speedText.setText(`Speed: ${this.gameSpeedMultiplier}x [S]`);
-      let speedColor = '#66ccff'; // 1x: Cyan
-      if (this.gameSpeedMultiplier === 2) speedColor = '#ffaa66'; // 2x: Orange
-      if (this.gameSpeedMultiplier === 3) speedColor = '#ff4444'; // 3x: Rot
+      let speedColor = '#d8cab6'; // 1x
+      if (this.gameSpeedMultiplier === 2) speedColor = '#f3d289'; // 2x
+      if (this.gameSpeedMultiplier === 3) speedColor = '#e58b6f'; // 3x
       this.speedText.setStyle({ fill: speedColor });
     }
 
@@ -860,7 +877,7 @@ export default class GameScene extends Phaser.Scene {
 
       const bg = this.add.rectangle(x, y, BTN_WIDTH, BTN_HEIGHT, 0x1f2430, 1)
         .setOrigin(0.5)
-        .setStrokeStyle(1, 0x4a5263, 1)
+        .setStrokeStyle(1, 0x7c6647, 1)
         .setInteractive({ useHandCursor: true })
         .setDepth(121);
 
@@ -870,15 +887,15 @@ export default class GameScene extends Phaser.Scene {
 
       const label = this.add.text(x - BTN_WIDTH / 2 + 14, y - 5, this.getTowerButtonLabel(towerKey), {
         fontSize: '10px',
-        fill: '#d7e2f0',
-        fontFamily: 'Courier',
+        fill: '#e9ddc8',
+        fontFamily: UI_BODY_FONT,
         fontStyle: 'bold'
       }).setOrigin(0, 0.5).setDepth(122);
 
       const cost = this.add.text(x - BTN_WIDTH / 2 + 14, y + 6, `${towerType.cost}g`, {
         fontSize: '9px',
-        fill: '#aab3c2',
-        fontFamily: 'Courier'
+        fill: '#c7b79f',
+        fontFamily: UI_BODY_FONT
       }).setOrigin(0, 0.5).setDepth(122);
 
       bg.on('pointerdown', () => {
@@ -908,13 +925,13 @@ export default class GameScene extends Phaser.Scene {
       const isSelected = this.towerTypeKeys[this.selectedTowerIndex] === btn.towerKey;
       const isHovered = this.hoveredTowerButtonKey === btn.towerKey;
 
-      const fillColor = isSelected ? 0x2b5f89 : (isHovered ? 0x2a3142 : 0x1f2430);
-      const borderColor = isSelected ? 0x6ec6ff : 0x4a5263;
+      const fillColor = isSelected ? 0x5a3d24 : (isHovered ? 0x3a2b1f : 0x241c17);
+      const borderColor = isSelected ? UI_BRASS : 0x7c6647;
       btn.bg.setFillStyle(fillColor, 1);
       btn.bg.setStrokeStyle(isSelected ? 2 : 1, borderColor, 1);
 
-      btn.label.setStyle({ fill: isSelected ? '#ffffff' : '#d7e2f0' });
-      btn.cost.setStyle({ fill: isSelected ? '#d7f0ff' : '#aab3c2' });
+      btn.label.setStyle({ fill: isSelected ? '#fff3d8' : '#e9ddc8' });
+      btn.cost.setStyle({ fill: isSelected ? '#f2ddb5' : '#c7b79f' });
     });
   }
 
@@ -961,7 +978,7 @@ export default class GameScene extends Phaser.Scene {
     }
 
     if (this.towerText) {
-      this.towerText.setStyle({ fill: '#00ffff' });
+      this.towerText.setStyle({ fill: '#f3d289' });
       this.towerSwitchPulseTween = this.tweens.add({
         targets: this.towerText,
         scaleX: 1.07,
@@ -972,7 +989,7 @@ export default class GameScene extends Phaser.Scene {
         onComplete: () => {
           if (this.towerText) {
             this.towerText.setScale(1);
-            this.towerText.setStyle({ fill: '#ff88ff' });
+            this.towerText.setStyle({ fill: '#e6d4c1' });
           }
         }
       });
@@ -1034,9 +1051,9 @@ export default class GameScene extends Phaser.Scene {
     const gridY = Math.round((y - this.HUD_HEIGHT) / this.TILE_SIZE) * this.TILE_SIZE;
     
     if (this.hoverFieldGraphics) {
-      // Zielfeld-Farbe: Rot bei nicht genug Gold, sonst Weiß
-      const fieldColor = hasEnoughGold ? 0xffffff : 0xff4444;
-      const fieldAlpha = hasEnoughGold ? 0.15 : 0.25;
+      // Zielfeld-Farbe: Messing bei genug Gold, Kupferrot bei zu wenig Gold
+      const fieldColor = hasEnoughGold ? UI_BRASS_SOFT : 0xb36549;
+      const fieldAlpha = hasEnoughGold ? 0.13 : 0.2;
       this.hoverFieldGraphics.fillStyle(fieldColor, fieldAlpha);
       this.hoverFieldGraphics.fillRect(gridX - this.TILE_SIZE / 2, gridY - this.TILE_SIZE / 2, this.TILE_SIZE, this.TILE_SIZE);
     }
@@ -1044,8 +1061,8 @@ export default class GameScene extends Phaser.Scene {
     // Tower-Preview als durchsichtiges Quadrat (40x40) mit Range-Kreis
     const TOWER_WIDTH = 40;
     const TOWER_HEIGHT = 40;
-    const previewAlpha = hasEnoughGold ? 0.4 : 0.15;
-    const rangeAlpha = hasEnoughGold ? 0.05 : 0.02;
+    const previewAlpha = hasEnoughGold ? 0.34 : 0.14;
+    const rangeAlpha = hasEnoughGold ? 0.045 : 0.02;
 
     // Reichweiten-Vorschau zeichnen (Generator: 3x3-Feld, sonst Kreis)
     this.towerPreviewGraphics.fillStyle(this.selectedTowerType.color, rangeAlpha);
@@ -1165,10 +1182,15 @@ export default class GameScene extends Phaser.Scene {
 
     // Farb-Map für Gegner-Typen
     const ENEMY_TYPE_MAP = { n: 'normal', s: 'fast', a: 'armored' };
-    const colorMap = {
-      normal: 0x00ff00,   // Grün
-      fast: 0xff6600,     // Orange
-      armored: 0xffff00   // Gelb
+    const coreColorMap = {
+      normal: 0x00ff00,
+      fast: 0xff6600,
+      armored: 0xffff00
+    };
+    const frameColorMap = {
+      normal: 0xbfa685,
+      fast: 0xd18b63,
+      armored: 0xe1c27f
     };
 
     let circleX = PREVIEW_START_X;
@@ -1186,34 +1208,38 @@ export default class GameScene extends Phaser.Scene {
 
       if (ENEMY_TYPE_MAP[char]) {
         const enemyType = ENEMY_TYPE_MAP[char];
-        const baseColor = colorMap[enemyType];
+        const baseCoreColor = coreColorMap[enemyType];
+        const baseFrameColor = frameColorMap[enemyType];
         
         // Bestimme Status
         const isDefeated = this.defeatedInWaveMap.has(enemyIndex);
         const isNotSpawned = enemyIndex >= this.waveSpawnIndex;
 
-        let color = baseColor;
+        let frameColor = baseFrameColor;
+        let coreColor = baseCoreColor;
         let alpha = 1;
         
         if (isDefeated) {
-          color = 0x666666;  // Grau für besiegt
+          frameColor = 0x5c4f43;
           alpha = 0.4;
         } else if (isNotSpawned) {
-          color = 0xcccccc;  // Weiß für noch nicht gespawnt
+          frameColor = 0x9f927d;
           alpha = 0.6;
         }
 
-        // Kreis zeichnen
-        this.wavePreviewGraphics.fillStyle(color, alpha);
+        // Kreis zeichnen: gedämpfter Rahmen + Gegner-Originalfarbe im Kern
+        this.wavePreviewGraphics.fillStyle(frameColor, alpha);
         this.wavePreviewGraphics.fillCircle(circleX, circleY, CIRCLE_RADIUS);
+        this.wavePreviewGraphics.fillStyle(coreColor, alpha);
+        this.wavePreviewGraphics.fillCircle(circleX, circleY, Math.max(2, CIRCLE_RADIUS - 2));
 
         // Outline
-        this.wavePreviewGraphics.lineStyle(1, color, alpha * 0.7);
+        this.wavePreviewGraphics.lineStyle(1, frameColor, alpha * 0.8);
         this.wavePreviewGraphics.strokeCircle(circleX, circleY, CIRCLE_RADIUS);
 
         // Wenn dieser Gegner gerade spawnet, Pfeil oben drüber
         if (enemyIndex === this.waveSpawnIndex && !isDefeated && !isNotSpawned) {
-          this.wavePreviewGraphics.fillStyle(0xff0000, 1);
+          this.wavePreviewGraphics.fillStyle(0xf3d289, 1);
           this.wavePreviewGraphics.fillTriangleShape([
             { x: circleX, y: circleY - CIRCLE_RADIUS - 6 },
             { x: circleX - 4, y: circleY - CIRCLE_RADIUS },
@@ -1621,24 +1647,24 @@ export default class GameScene extends Phaser.Scene {
   _promptPlayerName(defaultValue = '') {
     return new Promise((resolve) => {
       const overlay = document.createElement('div');
-      overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:9999;';
+      overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:radial-gradient(circle at 50% 20%, rgba(36,25,15,0.5), rgba(0,0,0,0.82));display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px;box-sizing:border-box;';
 
       const box = document.createElement('div');
-      box.style.cssText = 'background:#1a1a2e;border:2px solid #4488ff;border-radius:8px;padding:24px;display:flex;flex-direction:column;gap:12px;min-width:280px;font-family:sans-serif;';
+      box.style.cssText = 'background:linear-gradient(180deg,#2d2015 0%,#1b1714 24%,#131922 100%);border:3px solid #d4ae74;border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:12px;min-width:320px;box-shadow:0 18px 50px rgba(0,0,0,0.55), inset 0 0 0 2px rgba(243,216,170,0.16);font-family:Courier,monospace;';
 
       const label = document.createElement('div');
       label.textContent = 'Dein Name für die Highscore (3–10 Zeichen):';
-      label.style.cssText = 'color:#ccccff;font-size:14px;';
+      label.style.cssText = 'color:#f1d09a;font-size:18px;font-family:Georgia,"Times New Roman",serif;font-weight:700;letter-spacing:0.4px;';
 
       const input = document.createElement('input');
       input.type = 'text';
       input.maxLength = 10;
       input.value = defaultValue.slice(0, 10);
-      input.style.cssText = 'background:#0d0d1a;color:#ffffff;border:1px solid #4488ff;border-radius:4px;padding:8px;font-size:16px;outline:none;';
+      input.style.cssText = 'background:rgba(16,23,33,0.92);color:#f4efe5;border:1px solid rgba(212,174,116,0.55);border-radius:8px;padding:10px 12px;font-size:16px;outline:none;font-family:Courier,monospace;';
 
       const counter = document.createElement('div');
       counter.textContent = `${input.value.length}/10`;
-      counter.style.cssText = 'color:#888888;font-size:12px;text-align:right;';
+      counter.style.cssText = 'color:#c4b59b;font-size:12px;text-align:right;';
 
       input.addEventListener('input', () => {
         counter.textContent = `${input.value.length}/10`;
@@ -1649,11 +1675,11 @@ export default class GameScene extends Phaser.Scene {
 
       const cancelBtn = document.createElement('button');
       cancelBtn.textContent = 'Abbrechen';
-      cancelBtn.style.cssText = 'background:#333;color:#aaa;border:1px solid #555;border-radius:4px;padding:8px 14px;cursor:pointer;';
+      cancelBtn.style.cssText = 'background:linear-gradient(180deg,#4c3520,#352417);color:#e9dcc3;border:2px solid #b5905d;border-radius:8px;padding:8px 14px;cursor:pointer;font-family:Courier,monospace;font-weight:bold;';
 
       const submitBtn = document.createElement('button');
       submitBtn.textContent = 'Speichern';
-      submitBtn.style.cssText = 'background:#224488;color:#fff;border:1px solid #4488ff;border-radius:4px;padding:8px 14px;cursor:pointer;';
+      submitBtn.style.cssText = 'background:linear-gradient(180deg,#6d4a2b,#4d3520);color:#fff3d8;border:2px solid #d4ae74;border-radius:8px;padding:8px 14px;cursor:pointer;font-family:Courier,monospace;font-weight:bold;';
 
       const cleanup = (value) => {
         document.body.removeChild(overlay);
@@ -1662,6 +1688,22 @@ export default class GameScene extends Phaser.Scene {
 
       cancelBtn.addEventListener('click', () => cleanup(null));
       submitBtn.addEventListener('click', () => cleanup(input.value));
+      cancelBtn.addEventListener('mouseover', () => {
+        cancelBtn.style.borderColor = '#d5b17a';
+        cancelBtn.style.background = 'linear-gradient(180deg,#5c4127,#402b1b)';
+      });
+      cancelBtn.addEventListener('mouseout', () => {
+        cancelBtn.style.borderColor = '#b5905d';
+        cancelBtn.style.background = 'linear-gradient(180deg,#4c3520,#352417)';
+      });
+      submitBtn.addEventListener('mouseover', () => {
+        submitBtn.style.borderColor = '#f4d8a4';
+        submitBtn.style.background = 'linear-gradient(180deg,#7b5531,#593d24)';
+      });
+      submitBtn.addEventListener('mouseout', () => {
+        submitBtn.style.borderColor = '#d4ae74';
+        submitBtn.style.background = 'linear-gradient(180deg,#6d4a2b,#4d3520)';
+      });
       input.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') cleanup(input.value);
         if (e.key === 'Escape') cleanup(null);
@@ -2026,29 +2068,33 @@ export default class GameScene extends Phaser.Scene {
 
     // Dunkles Overlay
     const overlay = this.add.graphics();
-    overlay.fillStyle(0x000000, 0.75);
+    overlay.fillStyle(UI_OVERLAY, 0.78);
     overlay.fillRect(0, 0, this.scale.width, this.scale.height);
     overlay.setDepth(uiBaseDepth);
 
     // Panel
     const panel = this.add.graphics();
-    panel.fillStyle(0x330000, 1);
-    panel.lineStyle(3, 0xff2222, 1);
+    panel.fillStyle(UI_PANEL_BRASS, 0.96);
+    panel.lineStyle(3, UI_BRASS, 0.98);
     panel.fillRect(centerPanelLeft, panelTop, panelWidth, panelHeight);
     panel.strokeRect(centerPanelLeft, panelTop, panelWidth, panelHeight);
+    panel.fillStyle(UI_GLASS, 0.4);
+    panel.fillRect(centerPanelLeft + 10, panelTop + 10, panelWidth - 20, panelHeight - 20);
     panel.setDepth(uiBaseDepth + 1);
 
     const infoPanel = this.add.graphics();
-    infoPanel.fillStyle(0x1a2332, 0.95);
-    infoPanel.lineStyle(2, 0x5577aa, 1);
+    infoPanel.fillStyle(UI_PANEL_BRASS, 0.96);
+    infoPanel.lineStyle(2, UI_BRASS, 0.9);
     infoPanel.fillRect(infoPanelLeft, panelTop, panelWidth, panelHeight);
     infoPanel.strokeRect(infoPanelLeft, panelTop, panelWidth, panelHeight);
+    infoPanel.fillStyle(UI_GLASS, 0.42);
+    infoPanel.fillRect(infoPanelLeft + 10, panelTop + 10, panelWidth - 20, panelHeight - 20);
     infoPanel.setDepth(uiBaseDepth + 1);
 
     this.add.text(infoPanelLeft + 150, cy - 152, 'PUNKTE-RECHNUNG', {
-      fontSize: '13px',
-      fill: '#a8c7ff',
-      fontFamily: 'Courier',
+      fontSize: '16px',
+      fill: '#f1d09a',
+      fontFamily: UI_TITLE_FONT,
       fontStyle: 'bold'
     }).setOrigin(0.5).setDepth(uiBaseDepth + 2);
 
@@ -2072,8 +2118,8 @@ export default class GameScene extends Phaser.Scene {
       `Final: ${this.getTotalScorePoints()} pts`,
       {
         fontSize: '12px',
-        fill: '#d4e2f5',
-        fontFamily: 'Courier',
+        fill: '#eadfcd',
+        fontFamily: UI_BODY_FONT,
         lineSpacing: 3,
         wordWrap: { width: 272, useAdvancedWrap: true }
       }
@@ -2082,104 +2128,106 @@ export default class GameScene extends Phaser.Scene {
     this.add.text(cx, cy - 70, 'GAME OVER', {
       fontSize: '36px',
       fill: '#ff2222',
-      fontFamily: 'Courier',
+      fontFamily: UI_TITLE_FONT,
       fontStyle: 'bold'
     }).setOrigin(0.5).setDepth(uiBaseDepth + 2);
 
     this.add.text(cx, cy - 20, `Erreicht: Welle ${this.currentWaveIndex + 1}/${this.currentLevel.totalWaves}`, {
       fontSize: '16px',
-      fill: '#ffaaaa',
-      fontFamily: 'Courier'
+      fill: '#e6d4c1',
+      fontFamily: UI_BODY_FONT
     }).setOrigin(0.5).setDepth(uiBaseDepth + 2);
 
     this.add.text(cx, cy + 15, `Gold übrig: ${this.gold}`, {
       fontSize: '16px',
-      fill: '#ffff00',
-      fontFamily: 'Courier'
+      fill: '#f3d289',
+      fontFamily: UI_BODY_FONT
     }).setOrigin(0.5).setDepth(uiBaseDepth + 2);
 
     this.add.text(cx, cy + 32, `Gesamt-Score: ${this.getTotalScorePoints()} pts`, {
       fontSize: '14px',
       fill: '#ffd966',
-      fontFamily: 'Courier',
+      fontFamily: UI_BODY_FONT,
       fontStyle: 'bold'
     }).setOrigin(0.5).setDepth(uiBaseDepth + 2);
 
     this.add.text(cx, cy + 50, `Kills:${this.totalKills} | Leaks:${this.totalLeaks} | Ausgaben:${this.totalGoldSpent}g`, {
       fontSize: '11px',
-      fill: '#ffccaa',
-      fontFamily: 'Courier'
+      fill: '#d8cab6',
+      fontFamily: UI_BODY_FONT
     }).setOrigin(0.5).setDepth(uiBaseDepth + 2);
 
     const usageLines = this.buildTowerUsageLines();
     this.add.text(cx, cy + 72, usageLines[0], {
       fontSize: '12px',
       fill: '#ffd9c8',
-      fontFamily: 'Courier'
+      fontFamily: UI_BODY_FONT
     }).setOrigin(0.5).setDepth(uiBaseDepth + 2);
 
     if (usageLines[1]) {
       this.add.text(cx, cy + 90, usageLines[1], {
         fontSize: '12px',
         fill: '#ffd9c8',
-        fontFamily: 'Courier'
+        fontFamily: UI_BODY_FONT
       }).setOrigin(0.5).setDepth(uiBaseDepth + 2);
     }
 
     this.scoreSubmitButton = this.add.text(cx, cy + 116, '[ SCORE SPEICHERN ]', {
       fontSize: '16px',
-      fill: '#ffffff',
-      fontFamily: 'Courier',
+      fill: '#fff3d8',
+      fontFamily: UI_BODY_FONT,
       fontStyle: 'bold',
-      backgroundColor: '#444400',
+      backgroundColor: '#5a3d24',
       padding: { x: 12, y: 7 }
     }).setOrigin(0.5).setInteractive({ useHandCursor: true }).setDepth(uiBaseDepth + 3);
 
     this.scoreSubmitStatusText = this.add.text(cx, cy + 142, 'Noch nicht gespeichert', {
       fontSize: '12px',
-      fill: '#dddddd',
-      fontFamily: 'Courier'
+      fill: '#d7d0c4',
+      fontFamily: UI_BODY_FONT
     }).setOrigin(0.5).setDepth(uiBaseDepth + 3);
 
-    this.scoreSubmitButton.on('pointerover', () => this.scoreSubmitButton.setStyle({ fill: '#ffff00' }));
-    this.scoreSubmitButton.on('pointerout', () => this.scoreSubmitButton.setStyle({ fill: '#ffffff' }));
+    this.scoreSubmitButton.on('pointerover', () => this.scoreSubmitButton.setStyle({ fill: '#fff8e6', backgroundColor: '#6d4a2b' }));
+    this.scoreSubmitButton.on('pointerout', () => this.scoreSubmitButton.setStyle({ fill: '#fff3d8', backgroundColor: '#5a3d24' }));
     this.scoreSubmitButton.on('pointerdown', () => {
       this.requestAndSubmitRun();
     });
 
     const topPanel = this.add.graphics();
-    topPanel.fillStyle(0x101722, 0.95);
-    topPanel.lineStyle(2, 0x5577aa, 1);
+    topPanel.fillStyle(UI_PANEL_BRASS, 0.96);
+    topPanel.lineStyle(2, UI_BRASS, 0.9);
     topPanel.fillRect(topPanelLeft, cy - 170, 300, 340);
     topPanel.strokeRect(topPanelLeft, cy - 170, 300, 340);
+    topPanel.fillStyle(UI_GLASS, 0.42);
+    topPanel.fillRect(topPanelLeft + 10, cy - 160, 280, 320);
     topPanel.setDepth(uiBaseDepth + 1);
 
     this.topScoresTitleText = this.add.text(topPanelLeft + 150, cy - 152, 'TOP 20 (nach Upload)', {
-      fontSize: '13px',
-      fill: '#a8c7ff',
-      fontFamily: 'Courier',
+      fontSize: '16px',
+      fill: '#f1d09a',
+      fontFamily: UI_TITLE_FONT,
       fontStyle: 'bold'
     }).setOrigin(0.5).setDepth(uiBaseDepth + 2);
 
     this.topScoresText = this.add.text(topPanelLeft + 14, cy - 130, 'Score speichern,\ndann wird die Top 20 geladen.', {
       fontSize: '10px',
-      fill: '#99aabb',
-      fontFamily: 'Courier',
+      fill: '#d8d2c6',
+      fontFamily: UI_BODY_FONT,
       lineSpacing: 1
     }).setOrigin(0, 0).setDepth(uiBaseDepth + 2);
 
     // Neustart-Button
     const btn = this.add.text(cx, cy + 182, '[ NOCHMAL ]', {
       fontSize: '20px',
-      fill: '#ffffff',
-      fontFamily: 'Courier',
+      fill: '#fff3d8',
+      fontFamily: UI_BODY_FONT,
       fontStyle: 'bold',
-      backgroundColor: '#aa0000',
+      backgroundColor: '#5a3d24',
       padding: { x: 16, y: 8 }
     }).setOrigin(0.5).setInteractive({ useHandCursor: true }).setDepth(uiBaseDepth + 3);
 
-    btn.on('pointerover', () => btn.setStyle({ fill: '#ffff00' }));
-    btn.on('pointerout', () => btn.setStyle({ fill: '#ffffff' }));
+    btn.on('pointerover', () => btn.setStyle({ fill: '#fff8e6', backgroundColor: '#6d4a2b' }));
+    btn.on('pointerout', () => btn.setStyle({ fill: '#fff3d8', backgroundColor: '#5a3d24' }));
     btn.on('pointerdown', () => this.scene.restart({ debugMode: this.debugMode }));
   }
 
@@ -2197,29 +2245,33 @@ export default class GameScene extends Phaser.Scene {
 
     // Dunkles Overlay
     const overlay = this.add.graphics();
-    overlay.fillStyle(0x000000, 0.75);
+    overlay.fillStyle(UI_OVERLAY, 0.78);
     overlay.fillRect(0, 0, this.scale.width, this.scale.height);
     overlay.setDepth(uiBaseDepth);
 
     // Panel
     const panel = this.add.graphics();
-    panel.fillStyle(0x003300, 1);
-    panel.lineStyle(3, 0x22ff22, 1);
+    panel.fillStyle(UI_PANEL_BRASS, 0.96);
+    panel.lineStyle(3, UI_BRASS, 0.98);
     panel.fillRect(centerPanelLeft, panelTop, panelWidth, panelHeight);
     panel.strokeRect(centerPanelLeft, panelTop, panelWidth, panelHeight);
+    panel.fillStyle(UI_GLASS, 0.4);
+    panel.fillRect(centerPanelLeft + 10, panelTop + 10, panelWidth - 20, panelHeight - 20);
     panel.setDepth(uiBaseDepth + 1);
 
     const infoPanel = this.add.graphics();
-    infoPanel.fillStyle(0x1a2332, 0.95);
-    infoPanel.lineStyle(2, 0x5577aa, 1);
+    infoPanel.fillStyle(UI_PANEL_BRASS, 0.96);
+    infoPanel.lineStyle(2, UI_BRASS, 0.9);
     infoPanel.fillRect(infoPanelLeft, panelTop, panelWidth, panelHeight);
     infoPanel.strokeRect(infoPanelLeft, panelTop, panelWidth, panelHeight);
+    infoPanel.fillStyle(UI_GLASS, 0.42);
+    infoPanel.fillRect(infoPanelLeft + 10, panelTop + 10, panelWidth - 20, panelHeight - 20);
     infoPanel.setDepth(uiBaseDepth + 1);
 
     this.add.text(infoPanelLeft + 150, cy - 152, 'PUNKTE-RECHNUNG', {
-      fontSize: '13px',
-      fill: '#a8c7ff',
-      fontFamily: 'Courier',
+      fontSize: '16px',
+      fill: '#f1d09a',
+      fontFamily: UI_TITLE_FONT,
       fontStyle: 'bold'
     }).setOrigin(0.5).setDepth(uiBaseDepth + 2);
 
@@ -2243,8 +2295,8 @@ export default class GameScene extends Phaser.Scene {
       `Final: ${this.getTotalScorePoints()} pts`,
       {
         fontSize: '12px',
-        fill: '#d4e2f5',
-        fontFamily: 'Courier',
+        fill: '#eadfcd',
+        fontFamily: UI_BODY_FONT,
         lineSpacing: 3,
         wordWrap: { width: 272, useAdvancedWrap: true }
       }
@@ -2253,104 +2305,106 @@ export default class GameScene extends Phaser.Scene {
     this.add.text(cx, cy - 70, 'GEWONNEN! 🎉', {
       fontSize: '32px',
       fill: '#22ff22',
-      fontFamily: 'Courier',
+      fontFamily: UI_TITLE_FONT,
       fontStyle: 'bold'
     }).setOrigin(0.5).setDepth(uiBaseDepth + 2);
 
     this.add.text(cx, cy - 20, 'Alle Wellen besiegt!', {
       fontSize: '16px',
-      fill: '#aaffaa',
-      fontFamily: 'Courier'
+      fill: '#e6d4c1',
+      fontFamily: UI_BODY_FONT
     }).setOrigin(0.5).setDepth(uiBaseDepth + 2);
 
     this.add.text(cx, cy + 15, `Restgold: ${this.gold}`, {
       fontSize: '16px',
-      fill: '#ffff00',
-      fontFamily: 'Courier'
+      fill: '#f3d289',
+      fontFamily: UI_BODY_FONT
     }).setOrigin(0.5).setDepth(uiBaseDepth + 2);
 
     this.add.text(cx, cy + 32, `Gesamt-Score: ${this.getTotalScorePoints()} pts`, {
       fontSize: '14px',
       fill: '#ffff66',
-      fontFamily: 'Courier',
+      fontFamily: UI_BODY_FONT,
       fontStyle: 'bold'
     }).setOrigin(0.5).setDepth(uiBaseDepth + 2);
 
     this.add.text(cx, cy + 50, `Kills:${this.totalKills} | Leaks:${this.totalLeaks} | Ausgaben:${this.totalGoldSpent}g`, {
       fontSize: '11px',
-      fill: '#ccffcc',
-      fontFamily: 'Courier'
+      fill: '#d8cab6',
+      fontFamily: UI_BODY_FONT
     }).setOrigin(0.5).setDepth(uiBaseDepth + 2);
 
     const usageLines = this.buildTowerUsageLines();
     this.add.text(cx, cy + 72, usageLines[0], {
       fontSize: '12px',
       fill: '#d8ffd8',
-      fontFamily: 'Courier'
+      fontFamily: UI_BODY_FONT
     }).setOrigin(0.5).setDepth(uiBaseDepth + 2);
 
     if (usageLines[1]) {
       this.add.text(cx, cy + 90, usageLines[1], {
         fontSize: '12px',
         fill: '#d8ffd8',
-        fontFamily: 'Courier'
+        fontFamily: UI_BODY_FONT
       }).setOrigin(0.5).setDepth(uiBaseDepth + 2);
     }
 
     this.scoreSubmitButton = this.add.text(cx, cy + 116, '[ SCORE SPEICHERN ]', {
       fontSize: '16px',
-      fill: '#ffffff',
-      fontFamily: 'Courier',
+      fill: '#fff3d8',
+      fontFamily: UI_BODY_FONT,
       fontStyle: 'bold',
-      backgroundColor: '#444400',
+      backgroundColor: '#5a3d24',
       padding: { x: 12, y: 7 }
     }).setOrigin(0.5).setInteractive({ useHandCursor: true }).setDepth(uiBaseDepth + 3);
 
     this.scoreSubmitStatusText = this.add.text(cx, cy + 142, 'Noch nicht gespeichert', {
       fontSize: '12px',
-      fill: '#dddddd',
-      fontFamily: 'Courier'
+      fill: '#d7d0c4',
+      fontFamily: UI_BODY_FONT
     }).setOrigin(0.5).setDepth(uiBaseDepth + 3);
 
-    this.scoreSubmitButton.on('pointerover', () => this.scoreSubmitButton.setStyle({ fill: '#ffff00' }));
-    this.scoreSubmitButton.on('pointerout', () => this.scoreSubmitButton.setStyle({ fill: '#ffffff' }));
+    this.scoreSubmitButton.on('pointerover', () => this.scoreSubmitButton.setStyle({ fill: '#fff8e6', backgroundColor: '#6d4a2b' }));
+    this.scoreSubmitButton.on('pointerout', () => this.scoreSubmitButton.setStyle({ fill: '#fff3d8', backgroundColor: '#5a3d24' }));
     this.scoreSubmitButton.on('pointerdown', () => {
       this.requestAndSubmitRun();
     });
 
     const topPanel = this.add.graphics();
-    topPanel.fillStyle(0x101722, 0.95);
-    topPanel.lineStyle(2, 0x5577aa, 1);
+    topPanel.fillStyle(UI_PANEL_BRASS, 0.96);
+    topPanel.lineStyle(2, UI_BRASS, 0.9);
     topPanel.fillRect(topPanelLeft, cy - 170, 300, 340);
     topPanel.strokeRect(topPanelLeft, cy - 170, 300, 340);
+    topPanel.fillStyle(UI_GLASS, 0.42);
+    topPanel.fillRect(topPanelLeft + 10, cy - 160, 280, 320);
     topPanel.setDepth(uiBaseDepth + 1);
 
     this.topScoresTitleText = this.add.text(topPanelLeft + 150, cy - 152, 'TOP 20 (nach Upload)', {
-      fontSize: '13px',
-      fill: '#a8c7ff',
-      fontFamily: 'Courier',
+      fontSize: '16px',
+      fill: '#f1d09a',
+      fontFamily: UI_TITLE_FONT,
       fontStyle: 'bold'
     }).setOrigin(0.5).setDepth(uiBaseDepth + 2);
 
     this.topScoresText = this.add.text(topPanelLeft + 14, cy - 130, 'Score speichern,\ndann wird die Top 20 geladen.', {
       fontSize: '10px',
-      fill: '#99aabb',
-      fontFamily: 'Courier',
+      fill: '#d8d2c6',
+      fontFamily: UI_BODY_FONT,
       lineSpacing: 1
     }).setOrigin(0, 0).setDepth(uiBaseDepth + 2);
 
     // Neustart-Button
     const btn = this.add.text(cx, cy + 182, '[ NOCHMAL ]', {
       fontSize: '20px',
-      fill: '#ffffff',
-      fontFamily: 'Courier',
+      fill: '#fff3d8',
+      fontFamily: UI_BODY_FONT,
       fontStyle: 'bold',
-      backgroundColor: '#007700',
+      backgroundColor: '#5a3d24',
       padding: { x: 16, y: 8 }
     }).setOrigin(0.5).setInteractive({ useHandCursor: true }).setDepth(uiBaseDepth + 3);
 
-    btn.on('pointerover', () => btn.setStyle({ fill: '#ffff00' }));
-    btn.on('pointerout', () => btn.setStyle({ fill: '#ffffff' }));
+    btn.on('pointerover', () => btn.setStyle({ fill: '#fff8e6', backgroundColor: '#6d4a2b' }));
+    btn.on('pointerout', () => btn.setStyle({ fill: '#fff3d8', backgroundColor: '#5a3d24' }));
     btn.on('pointerdown', () => this.scene.restart({ debugMode: this.debugMode }));
   }
 
@@ -2361,6 +2415,14 @@ export default class GameScene extends Phaser.Scene {
       if (this.pauseOverlay) {
         this.pauseOverlay.destroy();
         this.pauseOverlay = null;
+      }
+      if (this.pausePanel) {
+        this.pausePanel.destroy();
+        this.pausePanel = null;
+      }
+      if (this.pausePanelInner) {
+        this.pausePanelInner.destroy();
+        this.pausePanelInner = null;
       }
       if (this.pauseTextTitle) {
         this.pauseTextTitle.destroy();
@@ -2383,25 +2445,34 @@ export default class GameScene extends Phaser.Scene {
     const width = this.scale.width;
     const height = this.scale.height;
 
-    // Vollständig opakes Overlay
-    this.pauseOverlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 1);
+    // Overlay mit dezentem Panel statt blankem Schwarz
+    this.pauseOverlay = this.add.rectangle(width / 2, height / 2, width, height, UI_OVERLAY, 0.9);
     this.pauseOverlay.setOrigin(0.5);
     this.pauseOverlay.setDepth(9999);
     this.pauseOverlay.setInteractive();  // Klicks blockieren
 
+    this.pausePanel = this.add.rectangle(width / 2, height / 2, 540, 220, UI_PANEL_BRASS, 0.96)
+      .setOrigin(0.5)
+      .setDepth(10000)
+      .setStrokeStyle(3, UI_BRASS, 0.96);
+    this.pausePanelInner = this.add.rectangle(width / 2, height / 2, 510, 188, UI_GLASS, 0.42)
+      .setOrigin(0.5)
+      .setDepth(10000)
+      .setStrokeStyle(1, UI_BRASS_SOFT, 0.16);
+
     // "PAUSED" Text
     this.pauseTextTitle = this.add.text(width / 2, height / 2 - 60, 'PAUSED', {
       fontSize: '48px',
-      fill: '#ffff00',
-      fontFamily: 'Arial',
+      fill: '#f3d289',
+      fontFamily: UI_TITLE_FONT,
       fontStyle: 'bold'
     }).setOrigin(0.5).setDepth(10000);
 
     // Hinweis
     this.pauseTextHint = this.add.text(width / 2, height / 2 + 60, 'Drücke P oder LEERTASTE zum Fortfahren', {
       fontSize: '16px',
-      fill: '#cccccc',
-      fontFamily: 'Courier'
+      fill: '#d8d2c6',
+      fontFamily: UI_BODY_FONT
     }).setOrigin(0.5).setDepth(10000);
   }
 
@@ -2413,25 +2484,35 @@ export default class GameScene extends Phaser.Scene {
     const centerX = width / 2;
     const centerY = height / 2;
 
-    const overlay = this.add.rectangle(centerX, centerY, width, height, 0x000000, 0.85)
+    const overlay = this.add.rectangle(centerX, centerY, width, height, UI_OVERLAY, 0.85)
       .setDepth(11000)
       .setInteractive();
 
-    const panel = this.add.rectangle(centerX, centerY, 920, 620, 0x111827, 0.96)
-      .setStrokeStyle(3, 0xff6633, 1)
+    const panelShadow = this.add.rectangle(centerX, centerY + 6, 932, 628, 0x000000, 0.28)
+      .setDepth(11000);
+
+    const panel = this.add.rectangle(centerX, centerY, 920, 620, UI_PANEL_BRASS, 0.96)
+      .setStrokeStyle(3, UI_BRASS, 0.98)
       .setDepth(11001);
+
+    const panelInner = this.add.rectangle(centerX, centerY, 892, 592, UI_GLASS, 0.42)
+      .setStrokeStyle(1, UI_BRASS_SOFT, 0.16)
+      .setDepth(11001);
+
+    const panelTitleRule = this.add.rectangle(centerX, centerY - 230, 760, 1, UI_BRASS, 0.26)
+      .setDepth(11002);
 
     const title = this.add.text(centerX, centerY - 255, 'NEUER TURM FREIGESCHALTET', {
       fontSize: '28px',
-      fill: '#ffd166',
-      fontFamily: 'Courier',
+      fill: '#f3d289',
+      fontFamily: UI_TITLE_FONT,
       fontStyle: 'bold'
     }).setOrigin(0.5).setDepth(11002);
 
     const towerName = this.add.text(centerX, centerY - 215, 'FLAMMENWERFER', {
       fontSize: '36px',
-      fill: '#ff5a36',
-      fontFamily: 'Courier',
+      fill: '#ef8f62',
+      fontFamily: UI_TITLE_FONT,
       fontStyle: 'bold'
     }).setOrigin(0.5).setDepth(11002);
 
@@ -2444,22 +2525,25 @@ export default class GameScene extends Phaser.Scene {
       'Trifft ein Ziel kontinuierlich mit dem Beam\n' +
       'und hinterlässt Nachbrennen (DoT), wenn es entkommt.', {
       fontSize: '18px',
-      fill: '#e5e7eb',
-      fontFamily: 'Courier',
+      fill: '#e7dfd2',
+      fontFamily: UI_BODY_FONT,
       align: 'center',
       lineSpacing: 6
     }).setOrigin(0.5).setDepth(11002);
 
+    const hintPlate = this.add.rectangle(centerX, centerY + 262, 530, 34, UI_PANEL_BRASS, 0.9)
+      .setStrokeStyle(1, UI_BRASS, 0.4)
+      .setDepth(11002);
     const hint = this.add.text(centerX, centerY + 260, '[ LEERTASTE oder KLICK zum Fortfahren | Taste 3 = Flammenwerfer ]', {
       fontSize: '14px',
-      fill: '#93c5fd',
-      fontFamily: 'Courier',
+      fill: '#f0e4cf',
+      fontFamily: UI_BODY_FONT,
       fontStyle: 'bold'
     }).setOrigin(0.5).setDepth(11002);
 
     overlay.on('pointerdown', () => this.closeLevelSplash(true));
 
-    this.levelSplashElements = [overlay, panel, title, towerName, image, desc, hint];
+    this.levelSplashElements = [overlay, panelShadow, panel, panelInner, panelTitleRule, title, towerName, image, desc, hintPlate, hint];
   }
 
   showLevel3Splash() {
@@ -2470,25 +2554,35 @@ export default class GameScene extends Phaser.Scene {
     const centerX = width / 2;
     const centerY = height / 2;
 
-    const overlay = this.add.rectangle(centerX, centerY, width, height, 0x000000, 0.85)
+    const overlay = this.add.rectangle(centerX, centerY, width, height, UI_OVERLAY, 0.85)
       .setDepth(11000)
       .setInteractive();
 
-    const panel = this.add.rectangle(centerX, centerY, 920, 620, 0x111827, 0.96)
-      .setStrokeStyle(3, 0x33bbff, 1)
+    const panelShadow = this.add.rectangle(centerX, centerY + 6, 932, 628, 0x000000, 0.28)
+      .setDepth(11000);
+
+    const panel = this.add.rectangle(centerX, centerY, 920, 620, UI_PANEL_BRASS, 0.96)
+      .setStrokeStyle(3, UI_BRASS, 0.98)
       .setDepth(11001);
+
+    const panelInner = this.add.rectangle(centerX, centerY, 892, 592, UI_GLASS, 0.42)
+      .setStrokeStyle(1, UI_BRASS_SOFT, 0.16)
+      .setDepth(11001);
+
+    const panelTitleRule = this.add.rectangle(centerX, centerY - 230, 760, 1, UI_BRASS, 0.26)
+      .setDepth(11002);
 
     const title = this.add.text(centerX, centerY - 255, 'NEUER TURM FREIGESCHALTET', {
       fontSize: '28px',
-      fill: '#ffd166',
-      fontFamily: 'Courier',
+      fill: '#f3d289',
+      fontFamily: UI_TITLE_FONT,
       fontStyle: 'bold'
     }).setOrigin(0.5).setDepth(11002);
 
     const towerName = this.add.text(centerX, centerY - 215, 'TESLA-TURM', {
       fontSize: '36px',
-      fill: '#4cc9ff',
-      fontFamily: 'Courier',
+      fill: '#c7d9ef',
+      fontFamily: UI_TITLE_FONT,
       fontStyle: 'bold'
     }).setOrigin(0.5).setDepth(11002);
 
@@ -2501,22 +2595,25 @@ export default class GameScene extends Phaser.Scene {
       'Trifft das Hauptziel und springt danach\n' +
       'auf weitere Gegner in Reichweite ueber.', {
       fontSize: '18px',
-      fill: '#e5e7eb',
-      fontFamily: 'Courier',
+      fill: '#e7dfd2',
+      fontFamily: UI_BODY_FONT,
       align: 'center',
       lineSpacing: 6
     }).setOrigin(0.5).setDepth(11002);
 
+    const hintPlate = this.add.rectangle(centerX, centerY + 262, 480, 34, UI_PANEL_BRASS, 0.9)
+      .setStrokeStyle(1, UI_BRASS, 0.4)
+      .setDepth(11002);
     const hint = this.add.text(centerX, centerY + 260, '[ LEERTASTE oder KLICK zum Fortfahren | Taste 4 = Tesla ]', {
       fontSize: '14px',
-      fill: '#93c5fd',
-      fontFamily: 'Courier',
+      fill: '#f0e4cf',
+      fontFamily: UI_BODY_FONT,
       fontStyle: 'bold'
     }).setOrigin(0.5).setDepth(11002);
 
     overlay.on('pointerdown', () => this.closeLevelSplash(true));
 
-    this.levelSplashElements = [overlay, panel, title, towerName, image, desc, hint];
+    this.levelSplashElements = [overlay, panelShadow, panel, panelInner, panelTitleRule, title, towerName, image, desc, hintPlate, hint];
   }
 
   closeLevelSplash(fromPointer = false) {
