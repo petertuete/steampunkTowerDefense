@@ -1,6 +1,7 @@
 require("dotenv").config();
 
 const express = require("express");
+const helmet = require("helmet");
 const cors = require("cors");
 const rateLimit = require("express-rate-limit");
 const crypto = require("crypto");
@@ -239,7 +240,7 @@ function isAllowedOrigin(origin) {
 
 const allowedOrigins = parseAllowedOrigins();
 
-app.disable("x-powered-by");
+app.use(helmet());
 if (isProduction) {
   // Render/Reverse-Proxy: echte Client-IP fuer Rate-Limit nutzen
   app.set("trust proxy", 1);
