@@ -1,6 +1,6 @@
 # Handover Status - BrowserGame
 
-Datum: 13. April 2026
+Datum: 28. April 2026
 
 ## Projektziel
 Steampunk Pixel-Art Tower Defense als spec-driven Vibe-Coding-Projekt, zuerst lokal kostenlos, spaeter onlinefaehig.
@@ -125,9 +125,29 @@ Wichtig:
 - CORS-Matching im Backend gehaertet (Origin-Normalisierung + localhost/127.0.0.1 defaults)
 - Online-Test (live) erfolgreich durchgefuehrt
 
+## Update Session 28. April 2026 (Visual Consistency Pass)
+- Intro-Screen visuell konsolidiert:
+   - mehr Dampf-Partikel + ruhigeres Rauchglas-Panel
+   - Start-Button im Brass-Stil (kein gruenes Wabern mehr)
+   - Hilfe-Button + Hilfe-Modal auf denselben Material-/Farbkanon umgestellt
+   - Typografie-Hierarchie in Intro und Hilfe-Screen auf Serif-Title + Monospace-Body vereinheitlicht
+- Overlay-Screens in GameScene konsolidiert:
+   - Game Over / Win / Pause / Tower-Unlock-Splashes im gleichen Brass- und Smoke-Glass-Look
+   - Nameingabe-Popup (Highscore) ebenfalls visuell angepasst
+- Ingame-HUD konsolidiert:
+   - obere HUD-Leiste + Mode-Toggle + Tower-Buttons + Skip-Button + Level-Selector im gleichen Stil
+   - Wave-Preview-Icons: gedaempfte Rahmen, aber Kernfarbe entspricht wieder dem realen Gegnertyp (gruen/orange/gelb)
+- Build-Checks lokal mehrfach erfolgreich (`npm --prefix frontend run build`)
+
 ## Aktuelle Tags / Checkpoints
 - v1.0.0-live (frueherer Live-Release)
 - v1.1.0-scoring-live (Scoring-Overhaul + Top20 + Endscreen/HUD + CORS)
+
+## Aktueller Git-Checkpoint (28. April 2026)
+- Branch: `main`
+- Commit: `8d49f2b`
+- Message: `Polish UI consistency across intro, HUD, and overlay screens`
+- Remote: `origin/main` ist auf demselben Stand
 
 ## Release-1 Scope Summary (aktuell verbindlich)
 In Scope (v1):
@@ -147,8 +167,8 @@ Merksatz fuer Folge-Sessions:
 
 ## Offene naechste Schritte (priorisiert)
 1. Balancing-Feintuning Level 2/3 auf Basis echter Tester-Runs
-2. Optional: bestehende Rate-Limits / Challenge-TTL auf Basis echter Nutzung nachjustieren
-3. Optional: Tester-Feedback-Loop aufsetzen (Formular + Auswertung)
+2. Performance-Pass bei hoher Gegnerdichte (lange Runs, FPS-Stabilitaet)
+3. Optional: bestehende Rate-Limits / Challenge-TTL auf Basis echter Nutzung nachjustieren
 4. Post-Release Backlog unveraendert: Turm-Upgrades + Upgrade-UI
 
 Erledigt am 13. April 2026:

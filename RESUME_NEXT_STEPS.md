@@ -1,12 +1,12 @@
-# Resume Next Steps — Handover 13. April 2026
+# Resume Next Steps — Handover 28. April 2026
 
-**Status:** ✅ Production-ready. Gameplay balanciert, Security gehärtet, Live-Deployment stabil.
+**Status:** ✅ Production-ready. Gameplay stabil, Security gehaertet, UI/HUD visuell konsolidiert.
 
 Wenn nach vollständigem Kontextverlust weitergemacht werden soll:
 
 **Starttext:**
 ```
-Ich möchte exakt am letzten BrowserGame-Checkpoint weitermachen (13.4.2026, 20:45).
+Ich möchte exakt am letzten BrowserGame-Checkpoint weitermachen (28.4.2026, EOD).
 Bitte lies zuerst HANDOVER_STATUS.md und danach frontend/src/scenes/GameScene.js.
 Führe dann einen kurzen Ist-Check durch (was läuft bereits, was fehlt noch) 
 und schlage den nächsten kleinstmöglichen Schritt vor.
@@ -21,6 +21,9 @@ Sprich mich im lockeren Du-Stil an, und ich nenne dich Copilot.
 3. npm run dev
 4. Browser auf http://localhost:5173
 5. Kurztest:
+  - Intro-Screen optisch prüfen (Dampf, Glas-Panel, Start-Button, Hilfe-Modal)
+  - Ingame-HUD optisch prüfen (Brass/Smoke-Glass, Buttons, Mode-Toggle)
+  - Wave-Preview prüfen: Rahmen gedaempft, Kernfarbe je Gegnertyp sichtbar
    - Beginner-Level starten
    - Tower platzieren (Linksklick)
    - Tower verkaufen (Shift+Linksklick)
@@ -61,6 +64,12 @@ Commit: 05a1a6e
 Message: Intro screen refinements: cleaner UI text, fix generator buff to +33%, remove example calculation
 ```
 
+## Zuletzt commitet (28.4.2026 EOD)
+```
+Commit: 8d49f2b
+Message: Polish UI consistency across intro, HUD, and overlay screens
+```
+
 ## Deployment-Live-Status (bestätigt)
 - ✅ Frontend läuft auf Vercel
 - ✅ Backend läuft auf Render (Supabase konfiguriert)
@@ -78,7 +87,7 @@ Message: Intro screen refinements: cleaner UI text, fix generator buff to +33%, 
 - Telemetrie durchschauen: Was spielen Nutzer, wo brechen sie ab?
 - Wellen-Skalierung (aktuell +14% HP): nachjustieren falls nötig
 
-### Prio 2 — Performance & Stabilität
+### Prio 2 — Performance & Stabilitaet
 - FirstTimeStart: Performance beim Level-Laden (Assets-Async laden?)
 - Memory: Lange Sessions (20+ Minuten) testen auf Leaks
 - FPS-Monitoring: Ist 60 FPS stabil gehalten auf schwächeren Rechnern?
