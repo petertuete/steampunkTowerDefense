@@ -1,6 +1,6 @@
 # Resume Next Steps — Handover 29. April 2026
 
-**Status:** ✅ Production-ready. Gameplay stabil, Security gehaertet, UI/HUD visuell konsolidiert, Dependencies aktualisiert.
+**Status:** ✅ Production-ready. Gameplay stabil, Security gehaertet, UI/HUD visuell konsolidiert, Dependencies aktualisiert, Audio-Basis integriert.
 
 Wenn nach vollständigem Kontextverlust weitergemacht werden soll:
 
@@ -34,6 +34,7 @@ Sprich mich im lockeren Du-Stil an, und ich nenne dich Copilot.
   - Endscreen: Name eingeben (3-10 Zeichen), Score speichern
   - Top-20 Leaderboard wird geladen
   - HUD: Live-Score waehrend des Spiels sichtbar
+  - Audio: Musik-Loop laeuft, SFX fuer Place/Kill/Wave/Leak/Invalid/WaveComplete ausloesen
 
 ## Deployment-Status
 - Frontend ist auf Vercel live
@@ -77,6 +78,9 @@ Message: Update backend-mini dependencies and config
 
 Commit: 9514250
 Message: Update dependencies
+
+Commit: cf0ad8c
+Message: Add background music (Victoriana Loop) to gameplay scene
 ```
 
 Dateien der letzten beiden Commits:
@@ -114,7 +118,8 @@ Dateien der letzten beiden Commits:
 - Monitoring/Alerting Render Logs aufsetzen
 
 ### Prio 4 — Nice-to-Have
-- Sound/SFX Prototype (optional, nicht mission-critical)
+- Sound/SFX Ausbau (teilweise erledigt, nicht mission-critical)
+  - offen: Tower-Sell, UI-Click/Hover, Win/Lose-Stinger
 - Particles/Juice (optional)
   aber keine inhaltlich gefaketen Runs.
 - Lösung: Server-side Game Simulation oder inkrementelle signierte Events (jeder Kill/jede Welle einzeln

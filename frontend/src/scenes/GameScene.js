@@ -23,6 +23,8 @@ const UI_BRASS_SOFT = 0xf3ddb3;
 const UI_PANEL_BRASS = 0x2a1e14;
 const UI_GLASS = 0x101721;
 const UI_OVERLAY = 0x000000;
+const AUDIO_MUSIC_VOLUME = 0.14;
+const AUDIO_SFX_GAIN_MULTIPLIER = 1.18;
 
 /**
  * GameScene - Hauptszene des Spiels
@@ -41,6 +43,7 @@ export default class GameScene extends Phaser.Scene {
     this.HUD_HEIGHT = 110;
     this.selectedTowerType = TOWER_TYPES.steamCannon;
     this.selectedLevelKey = DEFAULT_LEVEL;
+    this.lastEnemyDeathSfxAt = 0;
   }
 
   preload() {
@@ -73,9 +76,12 @@ export default class GameScene extends Phaser.Scene {
     const carried = this.restartData?.campaignContinue ? this.restartData.carryState || {} : null;
 
     // Musik starten (nur einmal beim ersten Load, bei Restart fortsetzen)
-    if (!this.sound.get('gameplay-music')) {
-      this.sound.play('gameplay-music', { loop: true, volume: 0.25 });
+    let music = this.sound.get('gameplay-music');
+    if (!music) {
+      music = this.sound.add('gameplay-music', { loop: true, volume: AUDIO_MUSIC_VOLUME });
+      music.play();
     }
+    music.setVolume(AUDIO_MUSIC_VOLUME);
 
     this.enemies = [];
     this.towers = [];
@@ -523,6 +529,8 @@ export default class GameScene extends Phaser.Scene {
 
     // Click-Event für Turm-Platzierung oder -Verkauf
     this.input.on('pointerdown', (pointer) => {
+      this.unlockAudioContext();
+
       if (this.consumeNextPointerDown) {
         this.consumeNextPointerDown = false;
         return;
@@ -1367,11 +1375,17 @@ export default class GameScene extends Phaser.Scene {
           this.levelScorePoints += SCORE_RULES.KILL_POINTS;
           this.scoreBreakdown.killPoints += SCORE_RULES.KILL_POINTS;
           this.totalGoldEarned += actualReward;
+          const now = performance.now();
+          if (now - this.lastEnemyDeathSfxAt >= 70) {
+            this.playEnemyDeathSfx();
+            this.lastEnemyDeathSfxAt = now;
+          }
           this.debugLog(`Kill! +${actualReward}g (Total: ${this.gold})`);
         }
 
         // Leben verlieren wenn Gegner durchkommt
         if (enemy.reachedEnd) {
+          this.playLeakSfx();
           this.lives -= 1;
           this.totalLeaks += 1;
           this.debugLog(`Gegner durchgekommen! Leben: ${this.lives}`);
@@ -1401,6 +1415,7 @@ export default class GameScene extends Phaser.Scene {
     // Prüfe ob aktuelle Welle fertig ist (nur wenn Spawn abgeschlossen!)
     if (this.waveSpawnComplete && this.enemiesInCurrentWave.length === 0 && this.enemies.length === 0) {
       this.debugLog(`✅ Welle ${this.currentWaveIndex + 1} fertig!`);
+      this.playWaveCompleteSfx();
 
       const leakedInWave = this.totalLeaks > this.waveLeakCountAtStart;
       if (!leakedInWave) {
@@ -1514,6 +1529,7 @@ export default class GameScene extends Phaser.Scene {
 
     // 2. Kosten checken
     if (this.gold < this.selectedTowerType.cost) {
+      this.playInvalidActionSfx();
       this.debugLog('Nicht genug Gold!');
       return;
     }
@@ -1522,12 +1538,14 @@ export default class GameScene extends Phaser.Scene {
 
     // 3. Pfad-Kollisions-Check (keine Türme auf Pfad)
     if (this.isPositionOnPath(gridX, absoluteY)) {
+      this.playInvalidActionSfx();
       this.debugLog('Kann nicht auf den Pfad setzen!');
       return;
     }
 
     // 4. Türm-Kollisions-Check (keine Türme übereinander)
     if (this.isTowerAtPosition(gridX, absoluteY)) {
+      this.playInvalidActionSfx();
       this.debugLog('Da steht schon ein Turm!');
       return;
     }
@@ -1543,8 +1561,70 @@ export default class GameScene extends Phaser.Scene {
     const towerKey = this.towerTypeKeys[this.selectedTowerIndex];
     this.towerPlacementStats[towerKey] = (this.towerPlacementStats[towerKey] || 0) + 1;
     this.recordTowerPlacement(tower, towerKey, gridX, gridY, absoluteY);
+    this.playTowerPlaceSfx();
 
     this.debugLog(`Turm platziert bei Grid (${gridX}, ${gridY})! Gold übrig: ${this.gold}`);
+  }
+
+  unlockAudioContext() {
+    const audioContext = this.sound?.context;
+    if (!audioContext || audioContext.state !== 'suspended') {
+      return;
+    }
+    audioContext.resume().catch(() => {
+      // Browser kann Audio-Resume vereinzelt blockieren; nächster User-Input probiert erneut.
+    });
+  }
+
+  playToneSfx({ fromHz, toHz = fromHz, durationMs, type = 'triangle', gain = 0.02 }) {
+    const audioContext = this.sound?.context;
+    if (!audioContext) {
+      return;
+    }
+
+    const startAt = audioContext.currentTime;
+    const endAt = startAt + (durationMs / 1000);
+    const osc = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    osc.type = type;
+    osc.frequency.setValueAtTime(fromHz, startAt);
+    osc.frequency.exponentialRampToValueAtTime(Math.max(20, toHz), endAt);
+
+    gainNode.gain.setValueAtTime(0.0001, startAt);
+    const targetGain = Math.max(0.0002, gain * AUDIO_SFX_GAIN_MULTIPLIER);
+    gainNode.gain.exponentialRampToValueAtTime(targetGain, startAt + 0.01);
+    gainNode.gain.exponentialRampToValueAtTime(0.0001, endAt);
+
+    osc.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    osc.start(startAt);
+    osc.stop(endAt + 0.01);
+  }
+
+  playTowerPlaceSfx() {
+    this.playToneSfx({ fromHz: 520, toHz: 760, durationMs: 90, type: 'square', gain: 0.018 });
+  }
+
+  playEnemyDeathSfx() {
+    this.playToneSfx({ fromHz: 340, toHz: 120, durationMs: 140, type: 'triangle', gain: 0.032 });
+  }
+
+  playWaveStartSfx() {
+    this.playToneSfx({ fromHz: 470, toHz: 680, durationMs: 120, type: 'sawtooth', gain: 0.03 });
+  }
+
+  playInvalidActionSfx() {
+    this.playToneSfx({ fromHz: 280, toHz: 180, durationMs: 95, type: 'square', gain: 0.02 });
+  }
+
+  playLeakSfx() {
+    this.playToneSfx({ fromHz: 240, toHz: 90, durationMs: 180, type: 'sawtooth', gain: 0.026 });
+  }
+
+  playWaveCompleteSfx() {
+    this.playToneSfx({ fromHz: 520, toHz: 760, durationMs: 130, type: 'triangle', gain: 0.022 });
   }
 
   ensureLevelUsageBucket(levelKey) {
@@ -1997,6 +2077,7 @@ export default class GameScene extends Phaser.Scene {
   startWave() {
     this.gameState = 'playing';
     this.hasStartedFirstWave = true;
+    this.playWaveStartSfx();
     const waveConfig = this.currentLevel.waves[this.currentWaveIndex];
     
     this.debugLog(`🌊 Welle ${this.currentWaveIndex + 1} startet:`, waveConfig);

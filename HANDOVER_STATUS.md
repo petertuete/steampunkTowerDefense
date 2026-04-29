@@ -1,6 +1,6 @@
 # Handover Status - BrowserGame
 
-Datum: 28. April 2026
+Datum: 29. April 2026
 
 ## Projektziel
 Steampunk Pixel-Art Tower Defense als spec-driven Vibe-Coding-Projekt, zuerst lokal kostenlos, spaeter onlinefaehig.
@@ -145,6 +145,19 @@ Wichtig:
 - Repo-Stand sauber auf `main`, ohne lokale uncommitted Änderungen
 - Aktueller HEAD-Commit: `efe0e0f`
 
+## Update Session 29. April 2026 (Audio + Feedback Pass)
+- Hintergrundmusik integriert: `victoriana-loop.mp3` als Gameplay-Loop in `GameScene`
+- Musik-Lautstaerke fuer besseres SFX-Mixing reduziert
+- Synthetische SFX (WebAudio) integriert und feinjustiert:
+   - Tower platzieren
+   - Enemy-Kill
+   - Wave-Start
+   - Invalid Action (zu wenig Gold / Pfad / Feld belegt)
+   - Leak / Leben verloren
+   - Wave-Complete
+- Browser-Audio-Resume beim ersten Pointer-Input abgesichert (Autoplay-Restriktionen)
+- Kurztest Balancing: Level 2 und 3 ohne Verluste erfolgreich spielbar
+
 ## Aktuelle Tags / Checkpoints
 - v1.0.0-live (frueherer Live-Release)
 - v1.1.0-scoring-live (Scoring-Overhaul + Top20 + Endscreen/HUD + CORS)
@@ -161,6 +174,12 @@ Wichtig:
 - Message: `Update backend-mini dependencies and config`
 - Vorheriger Commit: `9514250` (`Update dependencies`)
 - Remote: `origin/main` ist auf demselben Stand
+
+## Aktueller Git-Checkpoint (29. April 2026, EOD Audio-Pass)
+- Branch: `main`
+- Commit: `cf0ad8c`
+- Message: `Add background music (Victoriana Loop) to gameplay scene`
+- Remote: `origin/main` war auf demselben Stand vor dem heutigen SFX-Feintuning
 
 ## Release-1 Scope Summary (aktuell verbindlich)
 In Scope (v1):
@@ -182,7 +201,8 @@ Merksatz fuer Folge-Sessions:
 1. Balancing-Feintuning Level 2/3 auf Basis echter Tester-Runs
 2. Performance-Pass bei hoher Gegnerdichte (lange Runs, FPS-Stabilitaet)
 3. Optional: bestehende Rate-Limits / Challenge-TTL auf Basis echter Nutzung nachjustieren
-4. Post-Release Backlog unveraendert: Turm-Upgrades + Upgrade-UI
+4. Naechster Audio-Schritt: Tower-Verkauf + UI-Click/Hover + Win/Lose-Stinger
+5. Post-Release Backlog unveraendert: Turm-Upgrades + Upgrade-UI
 
 Erledigt am 13. April 2026:
 - Supabase Key-Rotation abgeschlossen (secret key aktiv)
