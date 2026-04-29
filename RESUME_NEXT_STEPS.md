@@ -1,12 +1,12 @@
-# Resume Next Steps — Handover 28. April 2026
+# Resume Next Steps — Handover 29. April 2026
 
-**Status:** ✅ Production-ready. Gameplay stabil, Security gehaertet, UI/HUD visuell konsolidiert.
+**Status:** ✅ Production-ready. Gameplay stabil, Security gehaertet, UI/HUD visuell konsolidiert, Dependencies aktualisiert.
 
 Wenn nach vollständigem Kontextverlust weitergemacht werden soll:
 
 **Starttext:**
 ```
-Ich möchte exakt am letzten BrowserGame-Checkpoint weitermachen (28.4.2026, EOD).
+Ich möchte exakt am letzten BrowserGame-Checkpoint weitermachen (29.4.2026, EOD).
 Bitte lies zuerst HANDOVER_STATUS.md und danach frontend/src/scenes/GameScene.js.
 Führe dann einen kurzen Ist-Check durch (was läuft bereits, was fehlt noch) 
 und schlage den nächsten kleinstmöglichen Schritt vor.
@@ -69,6 +69,22 @@ Message: Intro screen refinements: cleaner UI text, fix generator buff to +33%, 
 Commit: 8d49f2b
 Message: Polish UI consistency across intro, HUD, and overlay screens
 ```
+
+## Zuletzt commitet (29.4.2026)
+```
+Commit: efe0e0f
+Message: Update backend-mini dependencies and config
+
+Commit: 9514250
+Message: Update dependencies
+```
+
+Dateien der letzten beiden Commits:
+- frontend/package.json
+- frontend/package-lock.json
+- lernen/backend-mini/package.json
+- lernen/backend-mini/package-lock.json
+- lernen/backend-mini/server.js
 
 ## Deployment-Live-Status (bestätigt)
 - ✅ Frontend läuft auf Vercel

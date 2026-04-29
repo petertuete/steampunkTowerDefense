@@ -139,6 +139,12 @@ Wichtig:
    - Wave-Preview-Icons: gedaempfte Rahmen, aber Kernfarbe entspricht wieder dem realen Gegnertyp (gruen/orange/gelb)
 - Build-Checks lokal mehrfach erfolgreich (`npm --prefix frontend run build`)
 
+## Update Session 29. April 2026 (Dependency + Config Maintenance)
+- Frontend Dependencies aktualisiert (`frontend/package.json`, `frontend/package-lock.json`)
+- Backend-mini Dependencies und Konfig aktualisiert (`lernen/backend-mini/package.json`, `lernen/backend-mini/package-lock.json`, `lernen/backend-mini/server.js`)
+- Repo-Stand sauber auf `main`, ohne lokale uncommitted Änderungen
+- Aktueller HEAD-Commit: `efe0e0f`
+
 ## Aktuelle Tags / Checkpoints
 - v1.0.0-live (frueherer Live-Release)
 - v1.1.0-scoring-live (Scoring-Overhaul + Top20 + Endscreen/HUD + CORS)
@@ -147,6 +153,13 @@ Wichtig:
 - Branch: `main`
 - Commit: `8d49f2b`
 - Message: `Polish UI consistency across intro, HUD, and overlay screens`
+- Remote: `origin/main` ist auf demselben Stand
+
+## Aktueller Git-Checkpoint (29. April 2026)
+- Branch: `main`
+- Commit: `efe0e0f`
+- Message: `Update backend-mini dependencies and config`
+- Vorheriger Commit: `9514250` (`Update dependencies`)
 - Remote: `origin/main` ist auf demselben Stand
 
 ## Release-1 Scope Summary (aktuell verbindlich)
