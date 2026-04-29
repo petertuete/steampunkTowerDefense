@@ -181,6 +181,13 @@ Wichtig:
 - Message: `Add background music (Victoriana Loop) to gameplay scene`
 - Remote: `origin/main` war auf demselben Stand vor dem heutigen SFX-Feintuning
 
+## Aktueller Git-Checkpoint (29. April 2026, EOD Closing)
+- Branch: `main`
+- Commit: `4ab2d84`
+- Message: `Audio feedback pass: tune SFX mix and update handover docs`
+- Vorheriger Commit: `cf0ad8c`
+- Remote: `origin/main` ist auf demselben Stand
+
 ## Release-1 Scope Summary (aktuell verbindlich)
 In Scope (v1):
 - 5 Turmtypen (Dampfkanone, Hochdruck-Kanone, Flammenwerfer, Tesla, Generator)

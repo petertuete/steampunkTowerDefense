@@ -81,6 +81,9 @@ Message: Update dependencies
 
 Commit: cf0ad8c
 Message: Add background music (Victoriana Loop) to gameplay scene
+
+Commit: 4ab2d84
+Message: Audio feedback pass: tune SFX mix and update handover docs
 ```
 
 Dateien der letzten beiden Commits:
