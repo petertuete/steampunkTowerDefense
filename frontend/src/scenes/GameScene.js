@@ -47,6 +47,7 @@ export default class GameScene extends Phaser.Scene {
     // Hier werden später Assets geladen (Sprites, Tilesets, etc.)
     this.load.image('flamethrower-intro', '/flammenwerfer_intro.png');
     this.load.image('tesla-intro', '/teslaturm_intro.png');
+    this.load.audio('gameplay-music', '/victoriana-loop.mp3');
     this.debugLog('GameScene preload');
   }
 
@@ -70,6 +71,11 @@ export default class GameScene extends Phaser.Scene {
   create() {
     // Spielzustand zurücksetzen (läuft bei scene.restart() neu)
     const carried = this.restartData?.campaignContinue ? this.restartData.carryState || {} : null;
+
+    // Musik starten (nur einmal beim ersten Load, bei Restart fortsetzen)
+    if (!this.sound.get('gameplay-music')) {
+      this.sound.play('gameplay-music', { loop: true, volume: 0.25 });
+    }
 
     this.enemies = [];
     this.towers = [];
